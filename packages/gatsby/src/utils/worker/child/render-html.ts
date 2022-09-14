@@ -65,6 +65,10 @@ async function doGetResourcesForTemplate(
     pageData.staticQueryHashes
   )
 
+  console.log(`getResourcesForTemplate`, {
+    staticQueryContext,
+    scriptsAndStyles,
+  })
   return {
     staticQueryContext,
     ...scriptsAndStyles,
@@ -86,6 +90,7 @@ async function getResourcesForTemplate(
     return inFlight
   }
 
+  console.log({ pageData })
   const doWorkPromise = doGetResourcesForTemplate(pageData)
   inFlightResourcesForTemplate.set(pageData.componentChunkName, doWorkPromise)
 
@@ -126,9 +131,18 @@ export const renderHTMLProd = async ({
 }): Promise<IRenderHtmlResult> => {
   const publicDir = join(process.cwd(), `public`)
   const isPreview = process.env.GATSBY_IS_PREVIEW === `true`
+  console.log(`renderHTMLProd`, { publicDir, isPreview })
 
   const unsafeBuiltinsUsageByPagePath = {}
   const previewErrors = {}
+
+  console.log({
+    htmlComponentRendererPath,
+    paths,
+    envVars,
+    sessionId,
+    lastSessionId,
+  })
 
   // Check if we need to do setup and cache clearing. Within same session we can reuse memoized data,
   // but it's not safe to reuse them in different sessions. Check description of `lastSessionId` for more details
@@ -139,9 +153,12 @@ export const renderHTMLProd = async ({
     // for modules that aren't bundled by webpack.
     envVars.forEach(([key, value]) => (process.env[key] = value))
 
+    // console.log({ htmlComponentRendererPath })
     htmlComponentRenderer = require(htmlComponentRendererPath)
 
+    // console.log(1)
     webpackStats = await readWebpackStats(publicDir)
+    // console.log(2)
 
     lastSessionId = sessionId
 
@@ -151,12 +168,18 @@ export const renderHTMLProd = async ({
     }
   }
 
+  // console.log(1)
+  // console.log({ htmlComponentRendererPath })
+  // console.log(2)
+
   await Bluebird.map(
     paths,
     async pagePath => {
       try {
         const pageData = await readPageData(publicDir, pagePath)
         const resourcesForTemplate = await getResourcesForTemplate(pageData)
+        // console.log({ pageData })
+        // return true
 
         const { html, unsafeBuiltinsUsage } =
           await htmlComponentRenderer.default({

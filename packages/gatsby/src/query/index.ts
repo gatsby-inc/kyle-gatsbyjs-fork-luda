@@ -148,10 +148,12 @@ async function processQueries<QueryIDType>({
       graphqlTracing,
     })
 
+    console.log(`# page queries`, queryIds.length)
     queryIds.forEach((queryId: QueryIDType) => {
       fastQueue.push(queryId, (err, res) => {
         if (err) {
           fastQueue.kill()
+          console.log({ err })
           reject(err)
           return
         }
@@ -257,7 +259,9 @@ function createPageQueryJob(
   state: IGatsbyState,
   page: IGatsbyPage
 ): IQueryJob | undefined {
+  console.log({ page, state })
   const component = state.components.get(page.componentPath)
+  console.log({ component, components: state.components })
 
   if (!component) {
     return undefined
@@ -265,6 +269,7 @@ function createPageQueryJob(
 
   const { path, componentPath, context } = page
   const { query } = component
+  console.log({ path, componentPath, component, query })
 
   return {
     id: path,

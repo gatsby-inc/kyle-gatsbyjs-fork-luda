@@ -76,6 +76,7 @@ export async function savePageQueryResult(
   pagePath: string,
   stringifiedResult: string
 ): Promise<void> {
+  console.log(`savePageQueryResult`, pagePath, stringifiedResult, isLmdbStore())
   if (isLmdbStore()) {
     savePageQueryResultsPromise = getLMDBPageQueryResultsCache().set(
       pagePath,
@@ -96,8 +97,10 @@ export async function readPageQueryResult(
   publicDir: string,
   pagePath: string
 ): Promise<string | Buffer> {
+  console.log(`readPageQueryResult`, pagePath, isLmdbStore())
   if (isLmdbStore()) {
     const stringifiedResult = await getLMDBPageQueryResultsCache().get(pagePath)
+    console.log({ stringifiedResult })
     if (typeof stringifiedResult === `string`) {
       return stringifiedResult
     }
@@ -121,6 +124,7 @@ export async function writePageData(
   const result = await readPageQueryResult(publicDir, pageData.path)
 
   const outputFilePath = generatePageDataPath(publicDir, pageData.path)
+  console.log({ outputFilePath })
 
   const body = constructPageDataString(pageData, result)
 
@@ -149,6 +153,7 @@ export function isFlushEnqueued(): boolean {
 }
 
 export async function flush(parentSpan?: Span): Promise<void> {
+  console.log({ isFlushing })
   if (isFlushing) {
     // We're already in the middle of a flush
     return
@@ -166,6 +171,7 @@ export async function flush(parentSpan?: Span): Promise<void> {
   const isBuild = program?._?.[0] !== `develop`
 
   const { pagePaths } = pendingPageDataWrites
+  console.log({ pagePaths, pages })
   let writePageDataActivity
 
   let nodeManifestPagePathMap
@@ -194,7 +200,7 @@ export async function flush(parentSpan?: Span): Promise<void> {
     // between adding a pending write for a page and actually flushing
     // them, a page might not exist anymore щ（ﾟДﾟщ）
     // This is why we need this check
-    if (page) {
+    if (page && page.path !== `/404/`) {
       if (page.path && nodeManifestPagePathMap) {
         page.manifestId = nodeManifestPagePathMap.get(page.path)
       }
@@ -225,6 +231,7 @@ export async function flush(parentSpan?: Span): Promise<void> {
         const staticQueryHashes =
           staticQueriesByTemplate.get(page.componentPath) || []
 
+        console.log(`program`, program)
         const result = await writePageData(
           path.join(program.directory, `public`),
           {

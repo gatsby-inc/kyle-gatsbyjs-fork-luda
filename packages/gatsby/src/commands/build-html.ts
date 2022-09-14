@@ -265,16 +265,27 @@ const renderHTMLQueue = async (
   const sessionId = Date.now()
 
   const { webpackCompilationHash } = store.getState()
+  // const renderHTML = require(`../utils/worker/child/render-html`).renderHTMLProd
 
+  console.log({ stage })
   const renderHTML =
     stage === `build-html`
       ? workerPool.single.renderHTMLProd
       : workerPool.single.renderHTMLDev
 
   const uniqueUnsafeBuiltinUsedStacks = new Set<string>()
+  console.log({ renderHTML, workerPool })
 
   try {
     await Bluebird.map(segments, async pageSegment => {
+      console.log(0.1)
+      console.log({
+        envVars,
+        htmlComponentRendererPath,
+        paths: pageSegment,
+        sessionId,
+        webpackCompilationHash,
+      })
       const renderHTMLResult = await renderHTML({
         envVars,
         htmlComponentRendererPath,
@@ -282,49 +293,49 @@ const renderHTMLQueue = async (
         sessionId,
         webpackCompilationHash,
       })
+      console.log(0.2)
 
-      if (isPreview) {
-        const htmlRenderMeta = renderHTMLResult as IRenderHtmlResult
-        const seenErrors = new Set()
-        const errorMessages = new Map()
-        await Promise.all(
-          Object.entries(htmlRenderMeta.previewErrors).map(
-            async ([pagePath, error]) => {
-              if (!seenErrors.has(error.stack)) {
-                errorMessages.set(error.stack, {
-                  pagePaths: [pagePath],
-                })
-                seenErrors.add(error.stack)
-                const prettyError = createErrorFromString(
-                  error.stack,
-                  `${htmlComponentRendererPath}.map`
-                )
+      console.log({ renderHTMLResult })
+      const htmlRenderMeta = renderHTMLResult as IRenderHtmlResult
+      const seenErrors = new Set()
+      const errorMessages = new Map()
+      await Promise.all(
+        Object.entries(htmlRenderMeta.previewErrors).map(
+          async ([pagePath, error]) => {
+            if (!seenErrors.has(error.stack)) {
+              errorMessages.set(error.stack, {
+                pagePaths: [pagePath],
+              })
+              seenErrors.add(error.stack)
+              const prettyError = createErrorFromString(
+                error.stack,
+                `${htmlComponentRendererPath}.map`
+              )
 
-                const errorMessageStr = `${prettyError.stack}${
-                  prettyError.codeFrame ? `\n\n${prettyError.codeFrame}\n` : ``
-                }`
+              const errorMessageStr = `${prettyError.stack}${
+                prettyError.codeFrame ? `\n\n${prettyError.codeFrame}\n` : ``
+              }`
 
-                const errorMessage = errorMessages.get(error.stack)
-                errorMessage.errorMessage = errorMessageStr
-                errorMessages.set(error.stack, errorMessage)
-              } else {
-                const errorMessage = errorMessages.get(error.stack)
-                errorMessage.pagePaths.push(pagePath)
-                errorMessages.set(error.stack, errorMessage)
-              }
+              const errorMessage = errorMessages.get(error.stack)
+              errorMessage.errorMessage = errorMessageStr
+              errorMessages.set(error.stack, errorMessage)
+            } else {
+              const errorMessage = errorMessages.get(error.stack)
+              errorMessage.pagePaths.push(pagePath)
+              errorMessages.set(error.stack, errorMessage)
             }
-          )
+          }
         )
+      )
 
-        for (const value of errorMessages.values()) {
-          const errorMessage = `The following page(s) saw this error when building their HTML:\n\n${value.pagePaths
-            .map(p => `- ${p}`)
-            .join(`\n`)}\n\n${value.errorMessage}`
-          reporter.error({
-            id: `95314`,
-            context: { errorMessage },
-          })
-        }
+      for (const value of errorMessages.values()) {
+        const errorMessage = `The following page(s) saw this error when building their HTML:\n\n${value.pagePaths
+          .map(p => `- ${p}`)
+          .join(`\n`)}\n\n${value.errorMessage}`
+        reporter.error({
+          id: `95314`,
+          context: { errorMessage },
+        })
       }
 
       if (stage === `build-html`) {
@@ -425,6 +436,7 @@ export const doBuildPages = async (
   try {
     await renderHTMLQueue(workerPool, activity, rendererPath, pagePaths, stage)
   } catch (error) {
+    console.log(error)
     const prettyError = createErrorFromString(
       error.stack,
       `${rendererPath}.map`
@@ -492,9 +504,10 @@ export async function buildHTMLPagesAndDeleteStaleArtifacts({
   toDelete: Array<string>
 }> {
   const pageRenderer = `${program.directory}/${ROUTES_DIRECTORY}render-page.js`
+  console.log({ pageRenderer })
   buildUtils.markHtmlDirtyIfResultOfUsedStaticQueryChanged()
 
-  const { toRegenerate, toDelete, toCleanupFromTrackedState } =
+  let { toRegenerate, toDelete, toCleanupFromTrackedState } =
     buildUtils.calcDirtyHtmlFiles(store.getState())
 
   store.dispatch({
@@ -502,6 +515,8 @@ export async function buildHTMLPagesAndDeleteStaleArtifacts({
     payload: toCleanupFromTrackedState,
   })
 
+  toRegenerate = toRegenerate.filter(path => path !== `/404/`)
+  console.log(`toRegenerate`, toRegenerate)
   if (toRegenerate.length > 0) {
     const buildHTMLActivityProgress = reporter.createProgress(
       `Building static HTML for pages`,

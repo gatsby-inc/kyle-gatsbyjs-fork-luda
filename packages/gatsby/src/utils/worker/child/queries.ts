@@ -19,6 +19,7 @@ import { DeepPartial } from "redux"
 import { waitUntilPageQueryResultsAreStored } from "../../page-data"
 
 export function setComponents(): void {
+  console.log(`setComponents`)
   setState([`components`, `staticQueryComponents`])
 }
 
