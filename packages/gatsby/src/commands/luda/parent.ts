@@ -51,10 +51,8 @@ const parentMachine = createMachine<IContext>({
         // Assuming guards run after assignments are done
         PARTITION_DONE_SYNCING: {
           target: `waitingForWorkersToBuild`,
-          cond: context => {
-            console.log(context)
-            return context.partionsDoneSyncingCount + 1 == context.workersCount
-          },
+          cond: context =>
+            context.partionsDoneSyncingCount + 1 == context.workersCount,
           actions: [
             assign({
               partionsDoneSyncingCount: context =>

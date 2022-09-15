@@ -2,11 +2,9 @@ import { interpret } from "xstate"
 import parentMachine from "./parent"
 import childMachine from "./child"
 const pEvent = require(`p-event`).default
-const EventEmitter = require(`events`)
-const util = require(`util`)
+import Emittery from "emittery"
 
-const myEmitter = new EventEmitter()
-const once = util.promisify(myEmitter.once)
+const emitter = new Emittery()
 
 // Steps to test
 // starts and is idle
@@ -25,7 +23,7 @@ it(`should go all the way through`, done => {
       parentMachine.withContext({
         workersCount: 0,
         partionsDoneSyncingCount: 0,
-        bus: myEmitter,
+        bus: emitter,
       })
     ).onTransition(state => {
       currentParentState = state
@@ -35,40 +33,54 @@ it(`should go all the way through`, done => {
     })
     const child1Instance = interpret(
       childMachine.withContext({
-        bus: myEmitter,
+        bus: emitter,
       })
     ).onTransition(state => {
       currentChild1State = state
     })
 
     // Send in events
-    myEmitter.on(`event`, msg => {
-      console.log(msg)
-      if (msg.author == `parent`) {
-        child1Instance.send(msg)
-      } else {
-        parentInstance.send(msg)
-      }
+    emitter.on(`event`, msg => {
+      console.log(`event`, msg)
+      child1Instance.send(msg)
+      parentInstance.send(msg)
     })
 
     parentInstance.start()
     child1Instance.start()
 
+    // Wait for worker 1 to get assigned
+    await pEvent(
+      emitter,
+      `event`,
+      event =>
+        event.type === `PARTITION_ASSIGNMENT` && event.partitionNumber === 1
+    )
+
+    // Child is in right state & parent knows about 1 worker.
     expect(currentChild1State.value).toEqual(`syncing`)
     expect(currentParentState.context.workersCount).toEqual(1)
     expect(currentChild1State.context.partitionNumber).toEqual(1)
 
-    // Children finish syncing so building can start
+    // Wait for serial build work to finish (yup, blazing fast)
+    await new Promise(resolve => setTimeout(resolve, 50))
+
+    // Gatsby emits BOOTSTRAPPING_DONE to both parent & child (Gatsby is streaming
+    // actions/events to pub/sub during build).
     parentInstance.send({ type: `BOOTSTRAPPING_DONE`, author: `gatsby` })
-    await new Promise(resolve => setTimeout(resolve, 10))
     child1Instance.send({ type: `BOOTSTRAPPING_DONE`, author: `gatsby` })
+
+    await pEvent(emitter, `event`, event => event.type === `START_BUILDING`)
     expect(currentParentState.value).toEqual(`waitingForWorkersToBuild`)
     expect(currentChild1State.value).toEqual(`building`)
     expect(currentChild1State.context.partitionNumber).toEqual(1)
     expect(currentChild1State.context.partitionCount).toEqual(1)
 
-    // From internal Gatsby machine.
-    child1Instance.send(`PARTITION_BUILDING_FINISHED`)
+    // Wait for parallel build work to finish (yup, blazing fast)
+    await new Promise(resolve => setTimeout(resolve, 50))
+
+    // This event is from the worker Gatsby instance.
+    child1Instance.send(`FINISHED_BUILDING`)
   }
   asyncFunction()
 })

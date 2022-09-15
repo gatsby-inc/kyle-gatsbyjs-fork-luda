@@ -60,7 +60,7 @@ const workerManagerMachine = createMachine<IContext>({
         }),
       ],
       on: {
-        PARTITION_BUILDING_FINISHED: {
+        FINISHED_BUILDING: {
           actions: [
             context =>
               context.bus.emit(`event`, {
