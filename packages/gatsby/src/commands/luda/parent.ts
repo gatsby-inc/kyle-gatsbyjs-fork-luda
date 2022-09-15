@@ -1,9 +1,17 @@
 import { createMachine, assign } from "xstate"
 import { EventEmitter } from "events"
 
+interface IWorker {
+  id: string
+  doneSyncing: boolean
+  doneBuilding: boolean
+}
+
 interface IContext {
   workersCount: number
+  workers: Array<IWorker>
   partionsDoneSyncingCount: number
+  partionsDoneBuildingCount: number
   bus: EventEmitter
 }
 
@@ -25,40 +33,60 @@ const parentMachine = createMachine<IContext>({
           }),
       ],
       on: {
-        BOOTSTRAPPING_DONE: `waitingForWorkers`,
+        BOOTSTRAPPING_DONE: `waitingForWorkersToFinishSyncing`,
         // must have id
         // if id unique, increment count + store
         // id in workers array
         WORKER_ANNOUNCE: {
           actions: [
-            context =>
+            (context, event) =>
               context.bus.emit(`event`, {
                 type: `PARTITION_ASSIGNMENT`,
+                workerId: event.id,
                 partitionNumber: context.workersCount,
                 author: `parent`,
               }),
             assign({
               workersCount: (context, _event) => (context.workersCount += 1),
+              workers: (context, event) => {
+                context.workers.push({ id: event.id })
+                return context.workers
+              },
             }),
           ],
         },
       },
     },
-    waitingForWorkers: {
+    waitingForWorkersToFinishSyncing: {
       on: {
+        PARTITION_DONE_SYNCING: {
+          actions: [
+            assign({
+              partionsDoneSyncingCount: (context, event) => {
+                const worker = context.workers.find(w => w.id === event.id)
+                if (worker) {
+                  return (context.partionsDoneSyncingCount += 1)
+                } else {
+                  return context.partionsDoneSyncingCount
+                }
+              },
+              workers: (context, event) => {
+                const worker = context.workers.find(w => w.id === event.id)
+                if (worker) {
+                  worker.doneSyncing = true
+                }
+                return context.workers
+              },
+            }),
+          ],
+        },
         // TODO track when they finish and add guard which
         // prevents the transition until they're all done.
         // Assuming guards run after assignments are done
-        PARTITION_DONE_SYNCING: {
+        "": {
           target: `waitingForWorkersToBuild`,
-          cond: context =>
-            context.partionsDoneSyncingCount + 1 == context.workersCount,
-          actions: [
-            assign({
-              partionsDoneSyncingCount: context =>
-                (context.partionsDoneSyncingCount += 1),
-            }),
-          ],
+          cond: (context, event) =>
+            context.partionsDoneSyncingCount == context.workersCount,
         },
       },
     },
@@ -72,11 +100,39 @@ const parentMachine = createMachine<IContext>({
           }),
       ],
       on: {
-        PARTITION_BUILDING_FINISHED: `done`,
+        PARTITION_BUILDING_FINISHED: {
+          actions: [
+            assign({
+              partionsDoneBuildingCount: (context, event) => {
+                const worker = context.workers.find(w => w.id === event.id)
+                if (worker) {
+                  return (context.partionsDoneBuildingCount += 1)
+                } else {
+                  return context.partionsDoneBuildingCount
+                }
+              },
+              workers: (context, event) => {
+                const worker = context.workers.find(w => w.id === event.id)
+                if (worker) {
+                  worker.doneBuilding = true
+                }
+                return context.workers
+              },
+            }),
+          ],
+        },
+        "": {
+          target: `done`,
+          cond: context =>
+            context.partionsDoneBuildingCount == context.workersCount,
+        },
       },
     },
     done: {
-      type: `final`,
+      on: {
+        SOMETHING: `done`,
+      },
+      // type: `final`,
     },
   },
 })

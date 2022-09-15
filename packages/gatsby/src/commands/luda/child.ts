@@ -2,6 +2,7 @@ import { createMachine, assign } from "xstate"
 import { EventEmitter } from "events"
 
 interface IContext {
+  id: string
   partitionNumber: number
   partitionCount: number
   bus: EventEmitter
@@ -24,6 +25,7 @@ const workerManagerMachine = createMachine<IContext>({
         context =>
           context.bus.emit(`event`, {
             type: `WORKER_ANNOUNCE`,
+            id: context.id,
             author: `child`,
           }),
       ],
@@ -35,6 +37,7 @@ const workerManagerMachine = createMachine<IContext>({
             context =>
               context.bus.emit(`event`, {
                 type: `PARTITION_DONE_SYNCING`,
+                id: context.id,
                 author: `child`,
               }),
           ],
@@ -47,7 +50,13 @@ const workerManagerMachine = createMachine<IContext>({
         },
         PARTITION_ASSIGNMENT: {
           actions: assign({
-            partitionNumber: (_, event) => event.partitionNumber,
+            partitionNumber: (context, event) => {
+              if (context.id == event.workerId) {
+                return event.partitionNumber
+              } else {
+                return context.partitionNumber
+              }
+            },
           }),
         },
       },
@@ -61,15 +70,16 @@ const workerManagerMachine = createMachine<IContext>({
       ],
       on: {
         FINISHED_BUILDING: {
+          target: `waitingForBuild`,
           actions: [
             context =>
               context.bus.emit(`event`, {
                 type: `PARTITION_BUILDING_FINISHED`,
+                id: context.id,
                 author: `child`,
               }),
           ],
         },
-        BUILDING_DONE: `waitingForBuild`,
       },
     },
   },
