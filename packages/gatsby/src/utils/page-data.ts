@@ -100,6 +100,8 @@ export async function readPageQueryResult(
     const stringifiedResult = await getLMDBPageQueryResultsCache().get(pagePath)
     if (typeof stringifiedResult === `string`) {
       return stringifiedResult
+    } else {
+      return undefined
     }
     throw new Error(`Couldn't find temp query result for "${pagePath}".`)
   } else {
@@ -120,25 +122,29 @@ export async function writePageData(
 ): Promise<string> {
   const result = await readPageQueryResult(publicDir, pageData.path)
 
-  const outputFilePath = generatePageDataPath(publicDir, pageData.path)
+  if (result) {
+    const outputFilePath = generatePageDataPath(publicDir, pageData.path)
 
-  const body = constructPageDataString(pageData, result)
+    const body = constructPageDataString(pageData, result)
 
-  // transform asset size to kB (from bytes) to fit 64 bit to numbers
-  const pageDataSize = Buffer.byteLength(body) / 1000
+    // transform asset size to kB (from bytes) to fit 64 bit to numbers
+    const pageDataSize = Buffer.byteLength(body) / 1000
 
-  store.dispatch({
-    type: `ADD_PAGE_DATA_STATS`,
-    payload: {
-      pagePath: pageData.path,
-      filePath: outputFilePath,
-      size: pageDataSize,
-      pageDataHash: createContentDigest(body),
-    },
-  })
+    store.dispatch({
+      type: `ADD_PAGE_DATA_STATS`,
+      payload: {
+        pagePath: pageData.path,
+        filePath: outputFilePath,
+        size: pageDataSize,
+        pageDataHash: createContentDigest(body),
+      },
+    })
 
-  await fs.outputFile(outputFilePath, body)
-  return body
+    await fs.outputFile(outputFilePath, body)
+    return body
+  } else {
+    return {}
+  }
 }
 
 let isFlushPending = false

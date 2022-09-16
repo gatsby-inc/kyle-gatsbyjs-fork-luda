@@ -452,7 +452,9 @@ async function parallelBuild(
     const partitionedPageQueries = partitionArray(queryIds.pageQueryIds)
     queryIds.pageQueryIds = partitionedPageQueries
 
-    console.log({ partitionedPageQueries })
+    console.log({
+      partitionedPageQueries: partitionedPageQueries.map(q => q.path),
+    })
 
     await runQueriesInWorkersQueue(workerPool, queryIds, {
       parentSpan: buildSpan,
