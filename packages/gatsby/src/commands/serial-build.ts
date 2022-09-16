@@ -3,6 +3,7 @@ import report from "gatsby-cli/lib/reporter"
 import signalExit from "signal-exit"
 import fs from "fs-extra"
 import telemetry from "gatsby-telemetry"
+import tar from "tar"
 import { updateInternalSiteMetadata, isTruthy, uuid } from "gatsby-core-utils"
 import {
   buildRenderer,
@@ -16,7 +17,7 @@ import { GraphQLRunner } from "../query/graphql-runner"
 import { copyStaticDirs } from "../utils/get-static-dir"
 import { initTracer, stopTracer } from "../utils/tracer"
 import * as db from "../redux/save-state"
-import { store } from "../redux"
+import { store, emitter } from "../redux"
 import * as appDataUtil from "../utils/app-data"
 import { flush as flushPendingPageDataWrites } from "../utils/page-data"
 const v8 = require(`v8`)
@@ -65,25 +66,65 @@ import { validateEngines } from "../utils/validate-engines"
 import { constructConfigObject } from "../utils/gatsby-cloud-config"
 import { waitUntilWorkerJobsAreComplete } from "../utils/jobs/worker-messaging"
 import { writeTypeScriptTypes } from "../utils/graphql-typegen/ts-codegen"
-const { PubSub } = require(`@google-cloud/pubsub`)
-
-const projectId = `your-project-id` // Your Google Cloud Platform project ID
-const topicNameOrId = `my-topic` // Name for the new topic to create
-const subscriptionName = `my-sub` // Name for the new subscription to create
-// Instantiates a client
-const pubsub = new PubSub({ projectId })
-const topic = pubsub.topic(topicNameOrId)
 
 async function serialBuild(
   program: IBuildArgs,
   // Let external systems running Gatsby to inject attributes
-  externalTelemetryAttributes: Record<string, any>
+  externalTelemetryAttributes: Record<string, any>,
+  externalEmitter: any
 ): Promise<void> {
-  topic.publish(
-    Buffer.from(
-      v8.serialize({ type: `BUILD_STARTED`, timestamp: new Date().toJSON() })
-    )
-  )
+  externalEmitter.emit(`event`, {
+    type: `SITE_REPLICATION`,
+    action: {
+      type: `SOURCE_DIRECTORY`,
+      directory: program.directory,
+    },
+  })
+  emitter.on(`*`, msg => {
+    if (
+      msg &&
+      msg.type &&
+      process.env.IS_WORKER !== `true` &&
+      // Ignore
+      // - webpack/babel
+      // - random internal update events
+      // - schema inference/creation (each worker has to do this still).
+      //
+      ![
+        `SET_WEBPACK_CONFIG`,
+        `REPLACE_WEBPACK_CONFIG`,
+        `SET_BABEL_PLUGIN`,
+        `SET_BABEL_PRESET`,
+        `SET_PROGRAM`,
+        `SET_PROGRAM_STATUS`,
+        `SET_SITE_FLATTENED_PLUGINS`,
+        `API_FINISHED`,
+        `TOUCH_NODE`,
+        `START_INCREMENTAL_INFERENCE`,
+        `SET_SCHEMA_COMPOSER`,
+        `SET_SCHEMA`,
+      ].includes(msg.type)
+    ) {
+      let cleanedUpAction
+      if (msg.type === `BUILD_TYPE_METADATA`) {
+        delete msg.payload.nodes
+        cleanedUpAction = msg
+      } else if (msg.type === `CREATE_PAGE`) {
+        cleanedUpAction = JSON.parse(JSON.stringify(msg))
+      } else if (msg.type === `CREATE_NODE`) {
+        cleanedUpAction = JSON.parse(JSON.stringify(msg))
+      } else {
+        cleanedUpAction = msg
+      }
+      // console.log(cleanedUpAction.type, cleanedUpAction)
+      cleanedUpAction.timestamp = new Date().toJSON()
+      externalEmitter.emit(`event`, {
+        type: `SITE_REPLICATION`,
+        action: cleanedUpAction,
+      })
+    }
+  })
+
   // global gatsby object to use without store
   global.__GATSBY = {
     buildId: uuid.v4(),
@@ -284,6 +325,19 @@ async function serialBuild(
     cacheActivity.end()
   }
 
+  // Create tarball of engine files and send them to pubsub
+  await tar.c({ gzip: true, file: `ssr-engine-tarball.tgz` }, [
+    `public/webpack.stats.json`,
+    `.cache/page-ssr`,
+    `.cache/_this_is_virtual_fs_path_`,
+  ])
+  const tarBuffer = fs.readFileSync(`ssr-engine-tarball.tgz`)
+  externalEmitter.emit(`event`, {
+    type: `SSR_ENGINE`,
+    buffer: tarBuffer,
+    timestamp: new Date().toJSON(),
+  })
+
   // Copy files from the static directory to
   // an equivalent static directory within public.
   copyStaticDirs()
@@ -297,6 +351,10 @@ async function serialBuild(
   if (!externalTelemetryAttributes) {
     await stopTracer()
   }
+  externalEmitter.emit(`event`, {
+    type: `BOOTSTRAPPING_DONE`,
+    timestamp: new Date().toJSON(),
+  })
 }
 
 const srcLocation = process.cwd()
@@ -312,23 +370,22 @@ const program = {
 
 async function main() {
   // Create topic if it's not already created.
-  console.time(`createTopic`)
-  const [topics] = await pubsub.getTopics()
-  console.log(topics)
-  if (!topics.some(topic => topic.name.includes(topicNameOrId))) {
-    await pubsub.createTopic(topicNameOrId)
-    await topic.createSubscription(subscriptionName)
-  }
-  console.timeEnd(`createTopic`)
-  // process.exit()
-
-  await serialBuild(program)
-
-  topic.publish(
-    Buffer.from(
-      v8.serialize({ type: `BUILD_ENDED`, timestamp: new Date().toJSON() })
-    )
-  )
+  // console.time(`createTopic`)
+  // const [topics] = await pubsub.getTopics()
+  // console.log(topics)
+  // if (!topics.some(topic => topic.name.includes(topicNameOrId))) {
+  // await pubsub.createTopic(topicNameOrId)
+  // await topic.createSubscription(subscriptionName)
+  // }
+  // console.timeEnd(`createTopic`)
+  // // process.exit()
+  // await serialBuild(program)
+  // topic.publish(
+  // Buffer.from(
+  // v8.serialize({ type: `BUILD_ENDED`, timestamp: new Date().toJSON() })
+  // )
+  // )
 }
 
-main()
+// main()
+export default serialBuild

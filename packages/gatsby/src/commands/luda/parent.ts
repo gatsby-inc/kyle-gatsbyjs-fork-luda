@@ -1,140 +1,74 @@
-import { createMachine, assign } from "xstate"
-import { EventEmitter } from "events"
+import { interpret } from "xstate"
+import parentMachine from "./parent-machine"
+import serialBuild from "../serial-build"
+import path from "path"
+const v8 = require(`v8`)
 
-interface IWorker {
-  id: string
-  doneSyncing: boolean
-  doneBuilding: boolean
+import { createClient } from "redis"
+
+const srcLocation = process.cwd()
+const program = {
+  directory: srcLocation,
+  sitePackageJson: require(path.join(srcLocation, `package.json`)),
+  noUglify: false,
+  host: process.env.HOSTNAME,
+  port: 10000,
+  version: `1.0.0`,
+  prefixPaths: false,
 }
 
-interface IContext {
-  workersCount: number
-  workers: Array<IWorker>
-  partionsDoneSyncingCount: number
-  partionsDoneBuildingCount: number
-  bus: EventEmitter
+async function main() {
+  const client = createClient()
+
+  client.on(`error`, err => console.log(`Redis Client Error`, err))
+
+  await client.connect()
+
+  const redisEmitter = {
+    emit: (channel, msg) => {
+      const message = Buffer.from(v8.serialize(msg))
+      client.publish(channel, message)
+    },
+  }
+  const subscriber = client.duplicate()
+  await subscriber.connect()
+
+  const parentInstance = interpret(
+    parentMachine.withContext({
+      workersCount: 0,
+      workers: [],
+      partionsDoneSyncingCount: 0,
+      partionsDoneBuildingCount: 0,
+      // bus: emitter,
+      bus: redisEmitter,
+    })
+  ).onTransition(state => {
+    // currentParentState = state
+    console.log(`PARENT`, state.value, state.context, state.event)
+
+    if (state.value === `done`) {
+      console.log(`DONE!!!`)
+      // process.exit()
+    }
+  })
+
+  await subscriber.subscribe(
+    `event`,
+    msgToParse => {
+      const msg = v8.deserialize(msgToParse)
+      console.log(`event`, msg.type)
+      parentInstance.send(msg)
+    },
+    true
+  )
+
+  parentInstance.start()
+
+  serialBuild(program, null, redisEmitter)
+
+  // Fake Gatsby
+  // await new Promise(resolve => setTimeout(resolve, 1000))
+  // client.publish(`event`, JSON.stringify({ type: `BOOTSTRAPPING_DONE` }))
 }
 
-// TODO have a child state machine for redis — connects to
-// it and relays messages back and forth
-const parentMachine = createMachine<IContext>({
-  id: `Parent`,
-  initial: `bootstrapping`,
-  context: {
-    workersCount: 0,
-  },
-  states: {
-    bootstrapping: {
-      entry: [
-        context =>
-          context.bus.emit(`event`, {
-            type: `BUILD_STARTED`,
-            author: `parent`,
-          }),
-      ],
-      on: {
-        BOOTSTRAPPING_DONE: `waitingForWorkersToFinishSyncing`,
-        // must have id
-        // if id unique, increment count + store
-        // id in workers array
-        WORKER_ANNOUNCE: {
-          actions: [
-            (context, event) =>
-              context.bus.emit(`event`, {
-                type: `PARTITION_ASSIGNMENT`,
-                workerId: event.id,
-                partitionNumber: context.workersCount,
-                author: `parent`,
-              }),
-            assign({
-              workersCount: (context, _event) => (context.workersCount += 1),
-              workers: (context, event) => {
-                context.workers.push({ id: event.id })
-                return context.workers
-              },
-            }),
-          ],
-        },
-      },
-    },
-    waitingForWorkersToFinishSyncing: {
-      on: {
-        PARTITION_DONE_SYNCING: {
-          actions: [
-            assign({
-              partionsDoneSyncingCount: (context, event) => {
-                const worker = context.workers.find(w => w.id === event.id)
-                if (worker) {
-                  return (context.partionsDoneSyncingCount += 1)
-                } else {
-                  return context.partionsDoneSyncingCount
-                }
-              },
-              workers: (context, event) => {
-                const worker = context.workers.find(w => w.id === event.id)
-                if (worker) {
-                  worker.doneSyncing = true
-                }
-                return context.workers
-              },
-            }),
-          ],
-        },
-        // TODO track when they finish and add guard which
-        // prevents the transition until they're all done.
-        // Assuming guards run after assignments are done
-        "": {
-          target: `waitingForWorkersToBuild`,
-          cond: (context, event) =>
-            context.partionsDoneSyncingCount == context.workersCount,
-        },
-      },
-    },
-    waitingForWorkersToBuild: {
-      entry: [
-        context =>
-          context.bus.emit(`event`, {
-            type: `START_BUILDING`,
-            partitionCount: context.workersCount,
-            author: `parent`,
-          }),
-      ],
-      on: {
-        PARTITION_BUILDING_FINISHED: {
-          actions: [
-            assign({
-              partionsDoneBuildingCount: (context, event) => {
-                const worker = context.workers.find(w => w.id === event.id)
-                if (worker) {
-                  return (context.partionsDoneBuildingCount += 1)
-                } else {
-                  return context.partionsDoneBuildingCount
-                }
-              },
-              workers: (context, event) => {
-                const worker = context.workers.find(w => w.id === event.id)
-                if (worker) {
-                  worker.doneBuilding = true
-                }
-                return context.workers
-              },
-            }),
-          ],
-        },
-        "": {
-          target: `done`,
-          cond: context =>
-            context.partionsDoneBuildingCount == context.workersCount,
-        },
-      },
-    },
-    done: {
-      on: {
-        SOMETHING: `done`,
-      },
-      // type: `final`,
-    },
-  },
-})
-
-export default parentMachine
+main()

@@ -1,12 +1,13 @@
 import { interpret } from "xstate"
-import parentMachine from "./parent"
-import childMachine from "./child"
+import parentMachine from "./parent-machine"
+import childMachine from "./child-machine"
 const pEvent = require(`p-event`).default
 import Emittery from "emittery"
 import crypto from "crypto"
+import { createClient } from "redis"
 
 const emitter = new Emittery()
-jest.setTimeout(700)
+jest.setTimeout(7000)
 
 // Steps to test
 // starts and is idle
@@ -19,6 +20,20 @@ jest.setTimeout(700)
 
 it(`should go all the way through`, done => {
   async function asyncFunction() {
+    const client = createClient()
+
+    client.on(`error`, err => console.log(`Redis Client Error`, err))
+
+    await client.connect()
+
+    const redisEmitter = {
+      emit: (channel, msg) => {
+        client.publish(channel, JSON.stringify(msg))
+      },
+    }
+    const subscriber = client.duplicate()
+    await subscriber.connect()
+
     let currentParentState
     let currentChild1State
     let currentChild2State
@@ -29,6 +44,7 @@ it(`should go all the way through`, done => {
         partionsDoneSyncingCount: 0,
         partionsDoneBuildingCount: 0,
         bus: emitter,
+        // bus: redisEmitter,
       })
     ).onTransition(state => {
       currentParentState = state
@@ -38,6 +54,7 @@ it(`should go all the way through`, done => {
       childMachine.withContext({
         id: child1Id,
         bus: emitter,
+        // bus: redisEmitter,
       })
     ).onTransition(state => {
       currentChild1State = state
@@ -47,6 +64,7 @@ it(`should go all the way through`, done => {
       childMachine.withContext({
         id: child2Id,
         bus: emitter,
+        // bus: redisEmitter,
       })
     ).onTransition(state => {
       currentChild2State = state
@@ -59,19 +77,31 @@ it(`should go all the way through`, done => {
       child2Instance.send(msg)
       parentInstance.send(msg)
     })
+    // await subscriber.subscribe(`event`, msgToParse => {
+    // const msg = JSON.parse(msgToParse)
+    // console.log(`event`, msg)
+    // child1Instance.send(msg)
+    // child2Instance.send(msg)
+    // parentInstance.send(msg)
+    // emitter.emit(`event`, msg)
+    // })
 
     child1Instance.start()
     child2Instance.start()
     parentInstance.start()
 
-    // Wait for worker 1 to get assigned
+    // Wait for worker 2 to get assigned
     await pEvent(
       emitter,
       `event`,
       event =>
-        event.type === `PARTITION_ASSIGNMENT` && event.partitionNumber === 1
+        event.type === `PARTITION_ASSIGNMENT` && event.partitionNumber === 2
     )
 
+    console.log(`hi`)
+    console.log(currentChild1State.value)
+    console.log(currentChild2State.value)
+    console.log(`parentState`, currentParentState.value)
     // Child is in right state & parent knows about 1 worker.
     expect(currentChild1State.value).toEqual(`syncing`)
     expect(currentChild2State.value).toEqual(`syncing`)
@@ -119,6 +149,11 @@ it(`should go all the way through`, done => {
       `event`,
       event => event.type === `PARTITION_BUILDING_FINISHED`
     )
+    await pEvent(
+      emitter,
+      `event`,
+      event => event.type === `PARTITION_BUILDING_FINISHED`
+    )
     expect(currentParentState.context.workers).toEqual([
       { id: child1Id, doneSyncing: true, doneBuilding: true },
       { id: child2Id, doneSyncing: true, doneBuilding: true },
@@ -129,6 +164,8 @@ it(`should go all the way through`, done => {
     expect(currentChild1State.context.partitionNumber).toEqual(undefined)
     expect(currentChild2State.context.partitionCount).toEqual(undefined)
     expect(currentChild2State.context.partitionNumber).toEqual(undefined)
+    client.quit()
+    subscriber.quit()
 
     done()
   }

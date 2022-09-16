@@ -153,5 +153,8 @@
   },
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "redis": "^4.3.1"
+  }
 }

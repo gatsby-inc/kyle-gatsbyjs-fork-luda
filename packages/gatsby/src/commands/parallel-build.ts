@@ -1,5 +1,6 @@
 import path from "path"
 import report from "gatsby-cli/lib/reporter"
+import fastq from "fastq"
 import { slash } from "gatsby-core-utils"
 import signalExit from "signal-exit"
 import fs from "fs-extra"
@@ -386,6 +387,7 @@ async function parallelBuild(
   }
 
   console.log(3)
+
   // writes sync and async require files to disk
   // used inside routing "html" + "javascript"
   // await writeOutRequires({
@@ -393,120 +395,122 @@ async function parallelBuild(
   // parentSpan: buildSpan,
   // })
 
-  savePartialStateToDisk([`inferenceMetadata`])
-  savePartialStateToDisk([`components`, `staticQueryComponents`])
+  async function buildPages() {
+    savePartialStateToDisk([`inferenceMetadata`])
+    savePartialStateToDisk([`components`, `staticQueryComponents`])
 
-  workerPool.all.buildSchema()
+    workerPool.all.buildSchema()
 
-  const { queryIds } = await calculateDirtyQueries({ store })
-  queryIds.pageQueryIds = [
-    {
-      internalComponentName: `ComponentIndex`,
-      path: `/`,
-      matchPath: undefined,
-      component: `/Users/kylemathews/programs/gatsby-sourcing-studio-test/src/pages/index.tsx`,
-      componentPath: `/Users/kylemathews/programs/gatsby-sourcing-studio-test/src/pages/index.tsx`,
-      componentChunkName: `component---src-pages-index-tsx`,
-      isCreatedByStatefulCreatePages: true,
-      context: {},
-      updatedAt: 1663107104434,
-      pluginCreator___NODE: `6c26384c-7351-5f04-bd89-c600c6f4111f`,
-      pluginCreatorId: `6c26384c-7351-5f04-bd89-c600c6f4111f`,
-      mode: `SSG`,
-    },
-    {
-      internalComponentName: `Component/404.html`,
-      path: `/404.html`,
-      matchPath: undefined,
-      component: `/Users/kylemathews/programs/gatsby-sourcing-studio-test/src/pages/404.tsx`,
-      componentPath: `/Users/kylemathews/programs/gatsby-sourcing-studio-test/src/pages/404.tsx`,
-      componentChunkName: `component---src-pages-404-tsx`,
-      isCreatedByStatefulCreatePages: true,
-      context: {},
-      updatedAt: 1663107104413,
-      pluginCreator___NODE: `6c26384c-7351-5f04-bd89-c600c6f4111f`,
-      pluginCreatorId: `6c26384c-7351-5f04-bd89-c600c6f4111f`,
-      mode: `SSG`,
-    },
-  ]
+    const { queryIds } = await calculateDirtyQueries({ store })
+    // queryIds.pageQueryIds = [
+    // {
+    // internalComponentName: `ComponentIndex`,
+    // path: `/`,
+    // matchPath: undefined,
+    // component: `/Users/kylemathews/programs/gatsby-sourcing-studio-test/src/pages/index.tsx`,
+    // componentPath: `/Users/kylemathews/programs/gatsby-sourcing-studio-test/src/pages/index.tsx`,
+    // componentChunkName: `component---src-pages-index-tsx`,
+    // isCreatedByStatefulCreatePages: true,
+    // context: {},
+    // updatedAt: 1663107104434,
+    // pluginCreator___NODE: `6c26384c-7351-5f04-bd89-c600c6f4111f`,
+    // pluginCreatorId: `6c26384c-7351-5f04-bd89-c600c6f4111f`,
+    // mode: `SSG`,
+    // },
+    // {
+    // internalComponentName: `Component/404.html`,
+    // path: `/404.html`,
+    // matchPath: undefined,
+    // component: `/Users/kylemathews/programs/gatsby-sourcing-studio-test/src/pages/404.tsx`,
+    // componentPath: `/Users/kylemathews/programs/gatsby-sourcing-studio-test/src/pages/404.tsx`,
+    // componentChunkName: `component---src-pages-404-tsx`,
+    // isCreatedByStatefulCreatePages: true,
+    // context: {},
+    // updatedAt: 1663107104413,
+    // pluginCreator___NODE: `6c26384c-7351-5f04-bd89-c600c6f4111f`,
+    // pluginCreatorId: `6c26384c-7351-5f04-bd89-c600c6f4111f`,
+    // mode: `SSG`,
+    // },
+    // ]
 
-  // Only run queries with mode SSG
-  queryIds.pageQueryIds = queryIds.pageQueryIds.filter(
-    query => getPageMode(query) === `SSG`
-  )
+    // Only run queries with mode SSG
+    queryIds.pageQueryIds = queryIds.pageQueryIds.filter(
+      query => getPageMode(query) === `SSG`
+    )
 
-  console.log({ queryIds })
-  console.log(4)
-  await runQueriesInWorkersQueue(workerPool, queryIds, {
-    parentSpan: buildSpan,
-  })
-  console.log(5)
-  // Jobs still might be running even though query running finished
-  await Promise.all([
-    waitUntilAllJobsComplete(),
-    waitUntilWorkerJobsAreComplete(),
-  ])
-  await mergeWorkerState(workerPool, buildSpan)
-
-  // create scope so we don't leak state object
-  {
-    const state = store.getState()
-    await writeQueryContext({
-      staticQueriesByTemplate: state.staticQueriesByTemplate,
-      components: state.components,
-    })
-  }
-
-  // TODO would need to pass in updated webpackCompilationHash
-  const webpackCompilationHash = Math.random().toString()
-  const webpackSSRCompilationHash: string | null = null
-  // create scope so we don't leak state object
-  {
-    const state = store.getState()
-    if (
-      webpackCompilationHash !== state.webpackCompilationHash ||
-      !appDataUtil.exists(publicDir)
-    ) {
-      store.dispatch({
-        type: `SET_WEBPACK_COMPILATION_HASH`,
-        payload: webpackCompilationHash,
-      })
-
-      const rewriteActivityTimer = report.activityTimer(
-        `Rewriting compilation hashes`,
-        {
-          parentSpan: buildSpan,
-        }
-      )
-      rewriteActivityTimer.start()
-
-      await appDataUtil.write(publicDir, webpackCompilationHash as string)
-
-      rewriteActivityTimer.end()
-    }
-  }
-
-  console.log(5.5)
-  await flushPendingPageDataWrites(buildSpan)
-  console.log(6)
-  markWebpackStatusAsDone()
-
-  await waitUntilAllJobsComplete()
-
-  if (shouldGenerateEngines()) {
-    // well, tbf we should just generate this in `.cache` and avoid deleting it :shrug:
-    program.keepPageRenderer = true
-  }
-
-  const { toRegenerate, toDelete } =
-    await buildHTMLPagesAndDeleteStaleArtifacts({
-      program,
-      workerPool,
+    console.log({ queryIds })
+    console.log(4)
+    await runQueriesInWorkersQueue(workerPool, queryIds, {
       parentSpan: buildSpan,
     })
+    console.log(5)
+    // Jobs still might be running even though query running finished
+    await Promise.all([
+      waitUntilAllJobsComplete(),
+      waitUntilWorkerJobsAreComplete(),
+    ])
+    await mergeWorkerState(workerPool, buildSpan)
+
+    // create scope so we don't leak state object
+    {
+      const state = store.getState()
+      await writeQueryContext({
+        staticQueriesByTemplate: state.staticQueriesByTemplate,
+        components: state.components,
+      })
+    }
+
+    // TODO would need to pass in updated webpackCompilationHash
+    const webpackCompilationHash = Math.random().toString()
+    const webpackSSRCompilationHash: string | null = null
+    // create scope so we don't leak state object
+    {
+      const state = store.getState()
+      if (
+        webpackCompilationHash !== state.webpackCompilationHash ||
+        !appDataUtil.exists(publicDir)
+      ) {
+        store.dispatch({
+          type: `SET_WEBPACK_COMPILATION_HASH`,
+          payload: webpackCompilationHash,
+        })
+
+        const rewriteActivityTimer = report.activityTimer(
+          `Rewriting compilation hashes`,
+          {
+            parentSpan: buildSpan,
+          }
+        )
+        rewriteActivityTimer.start()
+
+        await appDataUtil.write(publicDir, webpackCompilationHash as string)
+
+        rewriteActivityTimer.end()
+      }
+    }
+
+    console.log(5.5)
+    await flushPendingPageDataWrites(buildSpan)
+    console.log(6)
+    markWebpackStatusAsDone()
+
+    await waitUntilAllJobsComplete()
+
+    if (shouldGenerateEngines()) {
+      // well, tbf we should just generate this in `.cache` and avoid deleting it :shrug:
+      program.keepPageRenderer = true
+    }
+
+    const { toRegenerate, toDelete } =
+      await buildHTMLPagesAndDeleteStaleArtifacts({
+        program,
+        workerPool,
+        parentSpan: buildSpan,
+      })
+  }
 
   // await db.saveState()
-  report.info(`Done building in ${process.uptime()} sec`)
+  report.info(`Done bootstrapping in ${process.uptime()} sec`)
   buildActivity.end()
 
   /*
@@ -517,48 +521,81 @@ async function parallelBuild(
     await stopTracer()
   }
   */
+
+  const replicationLogQueue = fastq(worker, 1)
+
+  let upstreamRootDirectory: string
+  function worker(arg, cb) {
+    const action = arg.action
+
+    // Massage actions
+    if (action.type === `SOURCE_DIRECTORY`) {
+      upstreamRootDirectory = action.directory
+    }
+
+    if (action.type === `CREATE_PAGE`) {
+      const newPath = path.join(
+        program.directory,
+        path.relative(upstreamRootDirectory, action.payload.component)
+      )
+      action.payload.component = newPath
+      action.payload.componentPath = newPath
+    }
+    if (action.type === `QUERY_EXTRACTED`) {
+      const newPath = path.join(
+        program.directory,
+        path.relative(upstreamRootDirectory, action.payload.componentPath)
+      )
+      action.payload.componentPath = newPath
+    }
+
+    if (action.type === `BUILD_TYPE_METADATA`) {
+      action.payload.nodes = getDataStore().iterateNodesByType(
+        action.payload.typeName
+      )
+    }
+
+    store.dispatch(action)
+    cb()
+  }
+
+  // TODO
+  // - return function to process actions
+  // - return function to run builds.
+  return { replicationLogQueue, buildPages }
 }
 
-const srcLocation = process.cwd()
-const program = {
-  directory: srcLocation,
-  sitePackageJson: require(path.join(srcLocation, `package.json`)),
-  noUglify: false,
-  host: process.env.HOSTNAME,
-  port: 10000,
-  version: `1.0.0`,
-  prefixPaths: false,
-}
+export default parallelBuild
 
-async function main() {
-  await parallelBuild(program)
-  /*
-  const subscription = topic.subscription(subscriptionName)
-  // await subscription.create()
-  console.log(3)
-  subscription.on(`message`, async message => {
-    let action = {}
-    try {
-      action = v8.deserialize(message.data)
-    } catch (e) {
-      console.log(`not parseable`)
-    }
-    console.log(`Received message:`, action.type, action.timestamp)
-    if (action.type) {
-      if (action.type === `BUILD_TYPE_METADATA`) {
-        action.payload.nodes = getDataStore().iterateNodesByType(
-          action.payload.typeName
-        )
-      }
-      store.dispatch(action)
-    }
-    if (action.type === `BUILD_ENDED`) {
-      await db.saveState()
-      console.log(`saved state`)
-    }
-  })
-  console.log(4)
-  */
-}
+// async function main() {
+// await parallelBuild(program)
+// [>
+// const subscription = topic.subscription(subscriptionName)
+// // await subscription.create()
+// console.log(3)
+// subscription.on(`message`, async message => {
+// let action = {}
+// try {
+// action = v8.deserialize(message.data)
+// } catch (e) {
+// console.log(`not parseable`)
+// }
+// console.log(`Received message:`, action.type, action.timestamp)
+// if (action.type) {
+// if (action.type === `BUILD_TYPE_METADATA`) {
+// action.payload.nodes = getDataStore().iterateNodesByType(
+// action.payload.typeName
+// )
+// }
+// store.dispatch(action)
+// }
+// if (action.type === `BUILD_ENDED`) {
+// await db.saveState()
+// console.log(`saved state`)
+// }
+// })
+// console.log(4)
+// */
+// }
 
-main()
+// main()
