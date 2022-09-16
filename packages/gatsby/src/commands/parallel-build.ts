@@ -370,10 +370,7 @@ async function parallelBuild(
   fs.writeFileSync(`${siteDir}/api-runner-ssr.js`, sSRAPIRunner, `utf-8`)
 
   activity.end()
-
-  console.log(1)
   const workerPool = WorkerPool.create()
-  console.log(2)
 
   workerPool.all.loadConfigAndPlugins({
     siteDirectory: program.directory,
@@ -386,8 +383,6 @@ async function parallelBuild(
     program,
   }
 
-  console.log(3)
-
   // writes sync and async require files to disk
   // used inside routing "html" + "javascript"
   // await writeOutRequires({
@@ -395,7 +390,7 @@ async function parallelBuild(
   // parentSpan: buildSpan,
   // })
 
-  async function buildPages() {
+  async function buildPages({ partitionNumber, partitionCount }) {
     savePartialStateToDisk([`inferenceMetadata`])
     savePartialStateToDisk([`components`, `staticQueryComponents`])
 
@@ -435,11 +430,30 @@ async function parallelBuild(
 
     // Only run queries with mode SSG
     queryIds.pageQueryIds = queryIds.pageQueryIds.filter(
-      query => getPageMode(query) === `SSG`
+      query => getPageMode(query) === `SSG` && query.path !== `/404/`
     )
 
-    console.log({ queryIds })
-    console.log(4)
+    function partitionArray(srcArray) {
+      const destArray = []
+      let pointer = -1 + partitionNumber
+      while (true) {
+        if (srcArray.length > pointer) {
+          destArray.push(srcArray[pointer])
+        } else {
+          break
+        }
+
+        pointer = pointer + partitionCount
+      }
+
+      return destArray
+    }
+
+    const partitionedPageQueries = partitionArray(queryIds.pageQueryIds)
+    queryIds.pageQueryIds = partitionedPageQueries
+
+    console.log({ partitionedPageQueries })
+
     await runQueriesInWorkersQueue(workerPool, queryIds, {
       parentSpan: buildSpan,
     })
@@ -504,6 +518,7 @@ async function parallelBuild(
     const { toRegenerate, toDelete } =
       await buildHTMLPagesAndDeleteStaleArtifacts({
         program,
+        partitionArray,
         workerPool,
         parentSpan: buildSpan,
       })

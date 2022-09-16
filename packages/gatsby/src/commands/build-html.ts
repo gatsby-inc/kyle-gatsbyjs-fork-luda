@@ -267,25 +267,15 @@ const renderHTMLQueue = async (
   const { webpackCompilationHash } = store.getState()
   // const renderHTML = require(`../utils/worker/child/render-html`).renderHTMLProd
 
-  console.log({ stage })
   const renderHTML =
     stage === `build-html`
       ? workerPool.single.renderHTMLProd
       : workerPool.single.renderHTMLDev
 
   const uniqueUnsafeBuiltinUsedStacks = new Set<string>()
-  console.log({ renderHTML, workerPool })
 
   try {
     await Bluebird.map(segments, async pageSegment => {
-      console.log(0.1)
-      console.log({
-        envVars,
-        htmlComponentRendererPath,
-        paths: pageSegment,
-        sessionId,
-        webpackCompilationHash,
-      })
       const renderHTMLResult = await renderHTML({
         envVars,
         htmlComponentRendererPath,
@@ -293,9 +283,7 @@ const renderHTMLQueue = async (
         sessionId,
         webpackCompilationHash,
       })
-      console.log(0.2)
 
-      console.log({ renderHTMLResult })
       const htmlRenderMeta = renderHTMLResult as IRenderHtmlResult
       const seenErrors = new Set()
       const errorMessages = new Map()
@@ -436,7 +424,6 @@ export const doBuildPages = async (
   try {
     await renderHTMLQueue(workerPool, activity, rendererPath, pagePaths, stage)
   } catch (error) {
-    console.log(error)
     const prettyError = createErrorFromString(
       error.stack,
       `${rendererPath}.map`
@@ -493,6 +480,7 @@ export const buildHTML = async ({
 
 export async function buildHTMLPagesAndDeleteStaleArtifacts({
   workerPool,
+  partitionArray,
   parentSpan,
   program,
 }: {
@@ -504,7 +492,6 @@ export async function buildHTMLPagesAndDeleteStaleArtifacts({
   toDelete: Array<string>
 }> {
   const pageRenderer = `${program.directory}/${ROUTES_DIRECTORY}render-page.js`
-  console.log({ pageRenderer })
   buildUtils.markHtmlDirtyIfResultOfUsedStaticQueryChanged()
 
   let { toRegenerate, toDelete, toCleanupFromTrackedState } =
@@ -516,6 +503,7 @@ export async function buildHTMLPagesAndDeleteStaleArtifacts({
   })
 
   toRegenerate = toRegenerate.filter(path => path !== `/404/`)
+  toRegenerate = partitionArray(toRegenerate)
   console.log(`toRegenerate`, toRegenerate)
   if (toRegenerate.length > 0) {
     const buildHTMLActivityProgress = reporter.createProgress(

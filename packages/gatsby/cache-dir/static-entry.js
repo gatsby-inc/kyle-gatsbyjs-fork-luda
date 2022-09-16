@@ -211,7 +211,6 @@ export default async function staticPage({
     }
 
     const { componentChunkName } = pageData
-    console.log(asyncRequires)
     const pageComponent = await asyncRequires.components[componentChunkName]()
 
     headHandlerForSSR({

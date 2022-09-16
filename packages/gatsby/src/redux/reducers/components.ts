@@ -31,7 +31,6 @@ export const componentsReducer = (
       }
       component.pages.add(action.payload.path)
       component.isInBootstrap = programStatus === `BOOTSTRAPPING`
-      console.log({ component, action })
       state.set(action.payload.componentPath, component)
       return state
     }

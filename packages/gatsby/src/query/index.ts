@@ -259,9 +259,7 @@ function createPageQueryJob(
   state: IGatsbyState,
   page: IGatsbyPage
 ): IQueryJob | undefined {
-  console.log({ page, state })
   const component = state.components.get(page.componentPath)
-  console.log({ component, components: state.components })
 
   if (!component) {
     return undefined
@@ -269,7 +267,6 @@ function createPageQueryJob(
 
   const { path, componentPath, context } = page
   const { query } = component
-  console.log({ path, componentPath, component, query })
 
   return {
     id: path,

@@ -57,11 +57,6 @@ export function readFromCache(
   if (slices) {
     cacheFolder = getWorkerSlicesFolder()
 
-    console.log(`readFromCache`, {
-      cacheFolder,
-      optionalPrefix,
-      digest: createContentDigest(slices),
-    })
     return v8.deserialize(
       readFileSync(
         reduxWorkerSlicesPrefix(cacheFolder) +
@@ -229,17 +224,6 @@ export function writeToCache(
   if (slices) {
     const cacheFolder = getWorkerSlicesFolder()
 
-    console.log(`writeToCache`, {
-      cacheFolder,
-      optionalPrefix,
-      digest: createContentDigest(slices),
-    })
-    console.log(
-      reduxWorkerSlicesPrefix(cacheFolder) +
-        `${optionalPrefix}_` +
-        createContentDigest(slices)
-    )
-    console.log(contents)
     outputFileSync(
       reduxWorkerSlicesPrefix(cacheFolder) +
         `${optionalPrefix}_` +

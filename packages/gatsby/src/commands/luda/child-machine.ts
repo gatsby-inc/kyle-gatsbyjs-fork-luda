@@ -83,7 +83,11 @@ const workerManagerMachine = createMachine<IContext>({
     building: {
       invoke: {
         id: `buildPages`,
-        src: context => context.gatsbyController.buildPages(),
+        src: context =>
+          context.gatsbyController.buildPages({
+            partitionCount: context.partitionCount,
+            partitionNumber: context.partitionNumber,
+          }),
         onDone: {
           target: `idle`,
           actions: [
