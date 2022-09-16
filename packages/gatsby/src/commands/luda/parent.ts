@@ -44,10 +44,16 @@ async function main() {
     })
   ).onTransition(state => {
     // currentParentState = state
-    console.log(`PARENT`, state.value, state.context, state.event)
+    console.log(
+      new Date().getTime(),
+      `PARENT`,
+      state.value,
+      state.context,
+      state.event
+    )
 
     if (state.value === `done`) {
-      console.log(`DONE!!!`)
+      console.log(`DONE!!!`, process.uptime())
       // process.exit()
     }
   })

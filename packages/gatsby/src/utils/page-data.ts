@@ -31,6 +31,7 @@ export async function readPageData(
   pagePath: string
 ): Promise<IPageDataWithQueryResult> {
   const filePath = generatePageDataPath(publicDir, pagePath)
+  console.log({ filePath })
   const rawPageData = await fs.readFile(filePath, `utf-8`)
 
   return JSON.parse(rawPageData)

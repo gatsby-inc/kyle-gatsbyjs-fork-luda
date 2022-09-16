@@ -109,6 +109,7 @@ async function waitNextPageData(
 async function readPageData(pagePath): Promise<IPageDataWithQueryResult> {
   const { program } = store.getState()
 
+  console.log(`readPageData`, path.join(program.directory, `public`, pagePath))
   try {
     return await readPageDataUtil(
       path.join(program.directory, `public`),
