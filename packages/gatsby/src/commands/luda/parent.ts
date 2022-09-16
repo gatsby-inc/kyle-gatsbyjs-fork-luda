@@ -18,7 +18,9 @@ const program = {
 }
 
 async function main() {
-  const client = createClient()
+  const client = createClient({
+    url: `redis://137.66.4.103:10000`,
+  })
 
   client.on(`error`, err => console.log(`Redis Client Error`, err))
 
