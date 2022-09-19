@@ -31,7 +31,11 @@ export const componentsReducer = (
 
       console.log({ oldKeys, newKeys: [...state.keys()], action })
 
-      oldKeys.forEach(key => state.delete(key))
+      oldKeys.forEach(key => {
+        if (!key.includes(process.cwd())) {
+          state.delete(key)
+        }
+      })
       console.log({ newKeys: [...state.keys()] })
 
       return state
