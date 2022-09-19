@@ -19,7 +19,7 @@ const program = {
 
 async function main() {
   const client = createClient({
-    url: `redis-19578.c21350.us-west-2-1.ec2.cloud.rlrcp.com:19578`,
+    url: `redis://default:5Jfpsh9R7aOp3hkU49mbHKODfHxvhLsN@redis-19578.c21350.us-west-2-1.ec2.cloud.rlrcp.com:19578`,
   })
 
   client.on(`error`, err => console.log(`Redis Client Error`, err))
