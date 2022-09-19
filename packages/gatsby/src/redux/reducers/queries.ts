@@ -106,6 +106,7 @@ export function queriesReducer(
       return state
     }
     case `QUERY_EXTRACTED`: {
+      console.log(`trackedQueries size`, state.trackedQueries.size)
       // Note: this action is called even in case of
       // extraction error or missing query (with query === ``)
       // TODO: use hash instead of a query text

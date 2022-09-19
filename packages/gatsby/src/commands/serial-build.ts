@@ -343,7 +343,9 @@ async function serialBuild(
   copyStaticDirs()
 
   // Make sure we saved the latest state so we have all jobs cached
+  console.time(`saveState`)
   await db.saveState()
+  console.timeEnd(`saveState`)
 
   report.info(`Done building in ${process.uptime()} sec`)
 

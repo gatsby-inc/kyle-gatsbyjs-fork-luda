@@ -23,6 +23,7 @@ export const emitter = mett()
 export const readState = (): IGatsbyState => {
   try {
     const state = readFromCache() as IGatsbyState
+    // console.log({ state })
     console.log(`number of components`, state.components.size)
     if (state.nodes) {
       // re-create nodesByType
@@ -49,6 +50,7 @@ export const readState = (): IGatsbyState => {
 
     return state
   } catch (e) {
+    console.log({ e })
     telemetry.trackCli(`CACHE_STATUS`, {
       cacheStatus: `COLD`,
     })

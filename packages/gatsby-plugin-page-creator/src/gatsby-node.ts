@@ -69,7 +69,9 @@ export async function createPagesStatefully(
   doneCb: PluginCallback
 ): Promise<void> {
   console.log(`not creating pages nope`)
-  return doneCb(null, null)
+  if (!process.env.CREATE_SNAPSHOT) {
+    return doneCb(null, null)
+  }
   console.log(`wow`)
   try {
     const { deletePage } = actions

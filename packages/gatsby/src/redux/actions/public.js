@@ -189,92 +189,92 @@ actions.createPage = (
   if (plugin.name === `default-site-plugin`) {
     name = `Your site's "gatsby-node.js"`
   }
-  if (!page.path) {
-    const message = `${name} must set the page path when creating a page`
-    // Don't log out when testing
-    if (isNotTestEnv) {
-      report.panic({
-        id: `11323`,
-        context: {
-          pluginName: name,
-          pageObject: page,
-          message,
-        },
-      })
-    } else {
-      return message
-    }
-  }
+  // if (!page.path) {
+  // const message = `${name} must set the page path when creating a page`
+  // // Don't log out when testing
+  // if (isNotTestEnv) {
+  // report.panic({
+  // id: `11323`,
+  // context: {
+  // pluginName: name,
+  // pageObject: page,
+  // message,
+  // },
+  // })
+  // } else {
+  // return message
+  // }
+  // }
 
   // Validate that the context object doesn't overlap with any core page fields
   // as this will cause trouble when running graphql queries.
-  if (page.context && typeof page.context === `object`) {
-    const invalidFields = reservedFields.filter(field => field in page.context)
+  // if (page.context && typeof page.context === `object`) {
+  // const invalidFields = reservedFields.filter(field => field in page.context)
 
-    if (invalidFields.length > 0) {
-      const error = `${
-        invalidFields.length === 1
-          ? `${name} used a reserved field name in the context object when creating a page:`
-          : `${name} used reserved field names in the context object when creating a page:`
-      }
+  // if (invalidFields.length > 0) {
+  // const error = `${
+  // invalidFields.length === 1
+  // ? `${name} used a reserved field name in the context object when creating a page:`
+  // : `${name} used reserved field names in the context object when creating a page:`
+  // }
 
-${invalidFields.map(f => `  * "${f}"`).join(`\n`)}
+  // ${invalidFields.map(f => `  * "${f}"`).join(`\n`)}
 
-${JSON.stringify(page, null, 4)}
+  // ${JSON.stringify(page, null, 4)}
 
-Data in "context" is passed to GraphQL as potential arguments when running the
-page query.
+  // Data in "context" is passed to GraphQL as potential arguments when running the
+  // page query.
 
-When arguments for GraphQL are constructed, the context object is combined with
-the page object so *both* page object and context data are available as
-arguments. So you don't need to add the page "path" to the context as it's
-already available in GraphQL. If a context field duplicates a field already
-used by the page object, this can break functionality within Gatsby so must be
-avoided.
+  // When arguments for GraphQL are constructed, the context object is combined with
+  // the page object so *both* page object and context data are available as
+  // arguments. So you don't need to add the page "path" to the context as it's
+  // already available in GraphQL. If a context field duplicates a field already
+  // used by the page object, this can break functionality within Gatsby so must be
+  // avoided.
 
-Please choose another name for the conflicting fields.
+  // Please choose another name for the conflicting fields.
 
-The following fields are used by the page object and should be avoided.
+  // The following fields are used by the page object and should be avoided.
 
-${reservedFields.map(f => `  * "${f}"`).join(`\n`)}
+  // ${reservedFields.map(f => `  * "${f}"`).join(`\n`)}
 
-            `
-      if (isTestEnv) {
-        return error
-        // Only error if the context version is different than the page
-        // version.  People in v1 often thought that they needed to also pass
-        // the path to context for it to be available in GraphQL
-      } else if (invalidFields.some(f => page.context[f] !== page[f])) {
-        report.panic({
-          id: `11324`,
-          context: {
-            message: error,
-          },
-        })
-      } else {
-        if (!hasWarnedForPageComponentInvalidContext.has(page.component)) {
-          report.warn(error)
-          hasWarnedForPageComponentInvalidContext.add(page.component)
-        }
-      }
-    }
-  }
+  // `
+  // if (isTestEnv) {
+  // return error
+  // // Only error if the context version is different than the page
+  // // version.  People in v1 often thought that they needed to also pass
+  // // the path to context for it to be available in GraphQL
+  // } else if (invalidFields.some(f => page.context[f] !== page[f])) {
+  // report.panic({
+  // id: `11324`,
+  // context: {
+  // message: error,
+  // },
+  // })
+  // } else {
+  // if (!hasWarnedForPageComponentInvalidContext.has(page.component)) {
+  // report.warn(error)
+  // hasWarnedForPageComponentInvalidContext.add(page.component)
+  // }
+  // }
+  // }
+  // }
 
   // Check if a component is set.
-  if (!page.component) {
-    if (isNotTestEnv) {
-      report.panic({
-        id: `11322`,
-        context: {
-          pluginName: name,
-          pageObject: page,
-        },
-      })
-    } else {
-      // For test
-      return `A component must be set when creating a page`
-    }
-  }
+  // if (!page.component) {
+  // if (isNotTestEnv) {
+  // report.panic({
+  // id: `11322`,
+  // context: {
+  // pluginName: name,
+  // pageObject: page,
+  // },
+  // })
+  // } else {
+  // // For test
+  // return `A component must be set when creating a page`
+  // }
+  // }
 
   const pageComponentPath = shadowCreatePagePath(page.component)
   if (pageComponentPath) {
@@ -283,22 +283,22 @@ ${reservedFields.map(f => `  * "${f}"`).join(`\n`)}
 
   const { trailingSlash } = store.getState().config
   const rootPath = store.getState().program.directory
-  const { error, message, panicOnBuild } = validatePageComponent(
-    page,
-    rootPath,
-    name
-  )
+  // const { error, message, panicOnBuild } = validatePageComponent(
+  // page,
+  // rootPath,
+  // name
+  // )
 
-  if (error) {
-    if (isNotTestEnv) {
-      if (panicOnBuild) {
-        report.panicOnBuild(error)
-      } else {
-        report.panic(error)
-      }
-    }
-    return message
-  }
+  // if (error) {
+  // if (isNotTestEnv) {
+  // if (panicOnBuild) {
+  // report.panicOnBuild(error)
+  // } else {
+  // report.panic(error)
+  // }
+  // }
+  // return message
+  // }
 
   // check if we've processed this component path
   // before, before running the expensive "trueCasePath"
@@ -434,11 +434,11 @@ ${reservedFields.map(f => `  * "${f}"`).join(`\n`)}
     internalPage.path = `/${internalPage.path}`
   }
 
-  const oldPage: Page = store.getState().pages.get(internalPage.path)
-  const contextModified =
-    !!oldPage && !_.isEqual(oldPage.context, internalPage.context)
-  const componentModified =
-    !!oldPage && !_.isEqual(oldPage.component, internalPage.component)
+  // const oldPage: Page = store.getState().pages.get(internalPage.path)
+  const contextModified = false
+  // !!oldPage && !_.isEqual(oldPage.context, internalPage.context)
+  // const componentModified =
+  // !!oldPage && !_.isEqual(oldPage.component, internalPage.component)
 
   const alternateSlashPath = page.path.endsWith(`/`)
     ? page.path.slice(0, -1)

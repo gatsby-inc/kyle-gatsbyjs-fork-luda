@@ -28,8 +28,10 @@ async function main() {
 
   const redisEmitter = {
     emit: (channel, msg) => {
-      const message = Buffer.from(v8.serialize(msg))
-      client.publish(channel, message)
+      if (!process.env.CREATE_SNAPSHOT) {
+        const message = Buffer.from(v8.serialize(msg))
+        client.publish(channel, message)
+      }
     },
   }
   const subscriber = client.duplicate()

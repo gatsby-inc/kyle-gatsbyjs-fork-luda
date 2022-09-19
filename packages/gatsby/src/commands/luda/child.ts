@@ -8,6 +8,7 @@ import { execSync } from "child_process"
 const stream = require(`stream`)
 const { promisify } = require(`util`)
 const got = require(`got`)
+const zlib = require(`zlib`)
 
 const pipeline = promisify(stream.pipeline)
 
@@ -45,23 +46,24 @@ async function main() {
 
   const srcLocation = process.cwd()
 
+  const cacheBuster = Math.random()
   // Download redux/node state files
   const urls = [
     {
-      url: `https://storage.googleapis.com/kyle-public/redux/redux.rest.state`,
-      path: `.cache/redux/redux.rest.state`,
+      url: `https://storage.googleapis.com/kyle-public/redux/redux.rest.state.zip?ignoreCache=${cacheBuster}`,
+      path: `.cache/redux/redux.rest.state.zip`,
     },
     {
-      url: `https://storage.googleapis.com/kyle-public/redux/redux.node.state_0`,
-      path: `.cache/redux/redux.node.state_0`,
+      url: `https://storage.googleapis.com/kyle-public/redux/redux.node.state_0.zip?ignoreCache=${cacheBuster}`,
+      path: `.cache/redux/redux.node.state_0.zip`,
     },
     {
-      url: `https://storage.googleapis.com/kyle-public/redux/redux.page.state_0`,
-      path: `.cache/redux/redux.page.state_0`,
+      url: `https://storage.googleapis.com/kyle-public/redux/redux.page.state_0.zip?ignoreCache=${cacheBuster}`,
+      path: `.cache/redux/redux.page.state_0.zip`,
     },
     {
-      url: `https://storage.googleapis.com/kyle-public/data.mdb`,
-      path: `.cache/data/datastore/data.mdb`,
+      url: `https://storage.googleapis.com/kyle-public/data.mdb.zip`,
+      path: `.cache/data/datastore/data.mdb.zip`,
     },
   ]
 
@@ -69,8 +71,18 @@ async function main() {
     urls.map(async urlInfo => {
       const fullPath = path.join(srcLocation, urlInfo.path)
       await fs.ensureDir(path.parse(fullPath).dir)
-      await pipeline(got.stream(urlInfo.url), fs.createWriteStream(fullPath))
-      console.log(`downloaded file to ${fullPath}`)
+      await pipeline(
+        got.stream(urlInfo.url, {
+          headers: {
+            "accept-encoding": `gzip,deflate`,
+          },
+        }),
+        // zlib.createUnzip(),
+        fs.createWriteStream(fullPath)
+      )
+      execSync(`unzip -d \`dirname ${fullPath}\` -o ${fullPath}`)
+      execSync(`rm ${fullPath}`)
+      console.log(`downloaded file to ${fullPath} and unzipped`)
     })
   )
 
