@@ -504,7 +504,7 @@ export async function buildHTMLPagesAndDeleteStaleArtifacts({
 
   toRegenerate = toRegenerate.filter(path => path !== `/404/`)
   toRegenerate = partitionArray(toRegenerate)
-  console.log(`toRegenerate`, toRegenerate)
+  console.log(`toRegenerate`, toRegenerate.length)
   if (toRegenerate.length > 0) {
     const buildHTMLActivityProgress = reporter.createProgress(
       `Building static HTML for pages`,

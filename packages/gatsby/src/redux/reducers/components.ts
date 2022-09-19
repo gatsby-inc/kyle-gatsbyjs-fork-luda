@@ -1,4 +1,5 @@
 import normalize from "../../utils/normalize-path"
+import path from "path"
 import { IGatsbyState, ActionsUnion } from "../types"
 
 let programStatus = `BOOTSTRAPPING`
@@ -15,6 +16,23 @@ export const componentsReducer = (
     case `SET_PROGRAM_STATUS`:
       programStatus = action.payload
       return state
+    case `UPSTREAM_SOURCE_DIRECTORY`: {
+      // Rewrite componentPath
+      const oldKeys = [...state.keys()]
+
+      state.forEach((value, key) => {
+        const newPath = path.join(
+          process.cwd(),
+          path.relative(action.directory, value.componentPath)
+        )
+        value.componentPath = newPath
+        state.set(newPath, value)
+      })
+
+      oldKeys.forEach(key => state.delete(key))
+
+      return state
+    }
     case `CREATE_PAGE`: {
       // Create XState service.
       let component = state.get(action.payload.componentPath)
@@ -37,6 +55,7 @@ export const componentsReducer = (
     case `QUERY_EXTRACTED`: {
       action.payload.componentPath = normalize(action.payload.componentPath)
       const component = state.get(action.payload.componentPath)!
+      console.log(action, state.keys())
       component.query = action.payload.query
       state.set(action.payload.componentPath, component)
       return state
@@ -56,6 +75,7 @@ export const componentsReducer = (
       return state
     }
     case `DELETE_PAGE`: {
+      console.log(`DELETE_PAGE`)
       const component = state.get(normalize(action.payload.component))!
       component.pages.delete(action.payload.path)
       return state

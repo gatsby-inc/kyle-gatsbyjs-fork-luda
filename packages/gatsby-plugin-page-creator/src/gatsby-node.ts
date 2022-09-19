@@ -68,6 +68,9 @@ export async function createPagesStatefully(
   }: IOptions,
   doneCb: PluginCallback
 ): Promise<void> {
+  console.log(`not creating pages nope`)
+  return doneCb(null, null)
+  console.log(`wow`)
   try {
     const { deletePage } = actions
     const { program, config } = store.getState()

@@ -76,7 +76,7 @@ async function serialBuild(
   externalEmitter.emit(`event`, {
     type: `SITE_REPLICATION`,
     action: {
-      type: `SOURCE_DIRECTORY`,
+      type: `UPSTREAM_SOURCE_DIRECTORY`,
       directory: program.directory,
     },
   })

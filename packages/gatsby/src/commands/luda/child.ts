@@ -7,6 +7,11 @@ import childMachine from "./child-machine"
 import parallelBuild from "../parallel-build"
 import tar from "tar"
 import { execSync } from "child_process"
+const stream = require(`stream`)
+const { promisify } = require(`util`)
+const got = require(`got`)
+
+const pipeline = promisify(stream.pipeline)
 
 import { createClient } from "redis"
 
@@ -40,9 +45,39 @@ async function main() {
   const subscriber = client.duplicate()
   await subscriber.connect()
 
+  const srcLocation = process.cwd()
+
+  // Download redux/node state files
+  const urls = [
+    {
+      url: `https://storage.googleapis.com/kyle-public/redux/redux.rest.state`,
+      path: `.cache/redux/redux.rest.state`,
+    },
+    {
+      url: `https://storage.googleapis.com/kyle-public/redux/redux.node.state_0`,
+      path: `.cache/redux/redux.node.state_0`,
+    },
+    {
+      url: `https://storage.googleapis.com/kyle-public/redux/redux.page.state_0`,
+      path: `.cache/redux/redux.page.state_0`,
+    },
+    {
+      url: `https://storage.googleapis.com/kyle-public/data.mdb`,
+      path: `.cache/data/datastore/data.mdb`,
+    },
+  ]
+
+  await Promise.all(
+    urls.map(async urlInfo => {
+      const fullPath = path.join(srcLocation, urlInfo.path)
+      await fs.ensureDir(path.parse(fullPath).dir)
+      await pipeline(got.stream(urlInfo.url), fs.createWriteStream(fullPath))
+      console.log(`downloaded file to ${fullPath}`)
+    })
+  )
+
   // Do very minimal bootstrap of the Gatsby worker controller
   // to pass in as context.
-  const srcLocation = process.cwd()
   const program = {
     directory: srcLocation,
     sitePackageJson: require(path.join(srcLocation, `package.json`)),
@@ -65,7 +100,7 @@ async function main() {
   ).onTransition(state => {
     // currentChild1State = state
     if (state.changed) {
-      console.log(`MYSTATE`, state.value, state.context)
+      console.log(`MYSTATE`, state.value)
     }
   })
 
@@ -79,7 +114,7 @@ async function main() {
   function replaceAll(str, match, replacement) {
     return str.replace(new RegExp(escapeRegExp(match), `g`), () => replacement)
   }
-  setInterval(() => console.log({ eventsSynced }), 1000)
+  setInterval(() => console.log({ child1Id, eventsSynced }), 1000)
 
   let upstreamRootDirectory: string
   await subscriber.subscribe(
@@ -87,7 +122,7 @@ async function main() {
     msgToParse => {
       const msg = v8.deserialize(msgToParse)
       eventsSynced += 1
-      if (msg.action?.type === `SOURCE_DIRECTORY`) {
+      if (msg.action?.type === `UPSTREAM_SOURCE_DIRECTORY`) {
         upstreamRootDirectory = msg.action.directory
       }
       if (msg.type === `SSR_ENGINE`) {
@@ -125,10 +160,12 @@ async function main() {
       }
 
       if (msg.type !== `SITE_REPLICATION`) {
-        // console.log(`event`, msg.type)
+        console.log(`event`, msg.type)
         child1Instance.send(msg)
       } else {
-        // console.log(`event`, msg.action.type)
+        if (msg.action.type !== `CREATE_NODE`) {
+          console.log(`event`, msg.action.type)
+        }
         gatsbyController.replicationLogQueue.push(msg)
       }
     },

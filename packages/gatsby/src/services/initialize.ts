@@ -360,12 +360,12 @@ export async function initialize({
   //
   // Also if the hash isn't there, then delete things just in case something
   // is weird.
-  if (oldPluginsHash && pluginsHash !== oldPluginsHash) {
-    reporter.info(reporter.stripIndent`
-      One or more of your plugins have changed since the last time you ran Gatsby. As
-      a precaution, we're deleting your site's cache to ensure there's no stale data.
-    `)
-  }
+  // if (oldPluginsHash && pluginsHash !== oldPluginsHash) {
+  // reporter.info(reporter.stripIndent`
+  // One or more of your plugins have changed since the last time you ran Gatsby. As
+  // a precaution, we're deleting your site's cache to ensure there's no stale data.
+  // `)
+  // }
 
   // .cache directory exists in develop at this point
   // so checking for .cache/json or .cache/caches-lmdb as a heuristic (could be any expected file)
@@ -378,110 +378,110 @@ export async function initialize({
     `)
   }
 
-  if (!oldPluginsHash || pluginsHash !== oldPluginsHash || cacheIsCorrupt) {
-    try {
-      // Comment out inviet until we can test perf impact
-      //
-      // let sourceFileSystemVersion = flattenedPlugins.find(
-      // plugin => plugin.name === `gatsby-source-filesystem`
-      // )?.version
+  // if (!oldPluginsHash || pluginsHash !== oldPluginsHash || cacheIsCorrupt) {
+  // try {
+  // // Comment out inviet until we can test perf impact
+  // //
+  // // let sourceFileSystemVersion = flattenedPlugins.find(
+  // // plugin => plugin.name === `gatsby-source-filesystem`
+  // // )?.version
 
-      // // The site might be using a plugin which uses "createRemoteFileNode" but
-      // // doesn't have gatsby-source-filesystem in their gatsby-config.js. So lets
-      // // also try requiring it.
-      // if (!sourceFileSystemVersion) {
-      // try {
-      // sourceFileSystemVersion = require(`gatsby-source-filesystem/package.json`)
-      // ?.version
-      // } catch {
-      // // ignore require errors
-      // }
-      // }
-      // } else if (
-      // sourceFileSystemVersion &&
-      // semver.lt(sourceFileSystemVersion, `2.9.0`)
-      // ) {
-      // // If the site has more than 50 downloaded files in it, tell them
-      // // how to save time.
-      // try {
-      // // Divide by two as the directory as both cache files + the actual downloaded files so
-      // // two results / downloaded file.
-      // const filesCount =
-      // (await fs.readdir(`.cache/caches/gatsby-source-filesystem`))
-      // .length / 2
-      // if (filesCount > 50) {
-      // reporter.info(stripIndent`\n\n
+  // // // The site might be using a plugin which uses "createRemoteFileNode" but
+  // // // doesn't have gatsby-source-filesystem in their gatsby-config.js. So lets
+  // // // also try requiring it.
+  // // if (!sourceFileSystemVersion) {
+  // // try {
+  // // sourceFileSystemVersion = require(`gatsby-source-filesystem/package.json`)
+  // // ?.version
+  // // } catch {
+  // // // ignore require errors
+  // // }
+  // // }
+  // // } else if (
+  // // sourceFileSystemVersion &&
+  // // semver.lt(sourceFileSystemVersion, `2.9.0`)
+  // // ) {
+  // // // If the site has more than 50 downloaded files in it, tell them
+  // // // how to save time.
+  // // try {
+  // // // Divide by two as the directory as both cache files + the actual downloaded files so
+  // // // two results / downloaded file.
+  // // const filesCount =
+  // // (await fs.readdir(`.cache/caches/gatsby-source-filesystem`))
+  // // .length / 2
+  // // if (filesCount > 50) {
+  // // reporter.info(stripIndent`\n\n
 
-      // Your local development experience is about to get better, faster, and stronger!
+  // // Your local development experience is about to get better, faster, and stronger!
 
-      // Your friendly Gatsby maintainers detected your site downloads quite a few files and that we're about to delete all ${Math.round(
-      // filesCount
-      // )} of them 😅. We're working right now to make our caching smarter which means we won't delete your downloaded files any more.
+  // // Your friendly Gatsby maintainers detected your site downloads quite a few files and that we're about to delete all ${Math.round(
+  // // filesCount
+  // // )} of them 😅. We're working right now to make our caching smarter which means we won't delete your downloaded files any more.
 
-      // If you're interested in trialing the new caching behavior *today* — which should make your local development environment faster, go ahead and enable the PRESERVE_FILE_DOWNLOAD_CACHE flag and run your develop server again.
+  // // If you're interested in trialing the new caching behavior *today* — which should make your local development environment faster, go ahead and enable the PRESERVE_FILE_DOWNLOAD_CACHE flag and run your develop server again.
 
-      // To do so, add to your gatsby-config.js:
+  // // To do so, add to your gatsby-config.js:
 
-      // flags: {
-      // preserve_file_download_cache: true,
-      // }
+  // // flags: {
+  // // preserve_file_download_cache: true,
+  // // }
 
-      // visit the umbrella issue to learn more: https://github.com/gatsbyjs/gatsby/discussions/28331
-      // `)
-      // }
-      // } catch {
-      // // ignore errors (mostly will just be directory not found).
-      // }
-      // }
+  // // visit the umbrella issue to learn more: https://github.com/gatsbyjs/gatsby/discussions/28331
+  // // `)
+  // // }
+  // // } catch {
+  // // // ignore errors (mostly will just be directory not found).
+  // // }
+  // // }
 
-      const deleteGlobs = [
-        // By default delete all files & subdirectories
-        `.cache/**`,
-        `.cache/data/**`,
-        `!.cache/data/gatsby-core-utils/**`,
-        `!.cache/compiled`,
-      ]
+  // const deleteGlobs = [
+  // // By default delete all files & subdirectories
+  // `.cache/**`,
+  // `.cache/data/**`,
+  // `!.cache/data/gatsby-core-utils/**`,
+  // `!.cache/compiled`,
+  // ]
 
-      if (process.env.GATSBY_EXPERIMENTAL_PRESERVE_FILE_DOWNLOAD_CACHE) {
-        // Stop the caches directory from being deleted, add all sub directories,
-        // but remove gatsby-source-filesystem
-        deleteGlobs.push(`!.cache/caches`)
-        deleteGlobs.push(`.cache/caches/*`)
-        deleteGlobs.push(`!.cache/caches/gatsby-source-filesystem`)
-      }
+  // if (process.env.GATSBY_EXPERIMENTAL_PRESERVE_FILE_DOWNLOAD_CACHE) {
+  // // Stop the caches directory from being deleted, add all sub directories,
+  // // but remove gatsby-source-filesystem
+  // deleteGlobs.push(`!.cache/caches`)
+  // deleteGlobs.push(`.cache/caches/*`)
+  // deleteGlobs.push(`!.cache/caches/gatsby-source-filesystem`)
+  // }
 
-      if (process.env.GATSBY_EXPERIMENTAL_PRESERVE_WEBPACK_CACHE) {
-        // Add webpack
-        deleteGlobs.push(`!.cache/webpack`)
-      }
+  // if (process.env.GATSBY_EXPERIMENTAL_PRESERVE_WEBPACK_CACHE) {
+  // // Add webpack
+  // deleteGlobs.push(`!.cache/webpack`)
+  // }
 
-      const files = await glob(deleteGlobs, {
-        cwd: program.directory,
-      })
+  // const files = await glob(deleteGlobs, {
+  // cwd: program.directory,
+  // })
 
-      await Promise.all(files.map(file => fs.remove(file)))
-    } catch (e) {
-      reporter.error(`Failed to remove .cache files.`, e)
-    }
-    // Tell reducers to delete their data (the store will already have
-    // been loaded from the file system cache).
-    store.dispatch({
-      type: `DELETE_CACHE`,
-      cacheIsCorrupt,
-    })
+  // await Promise.all(files.map(file => fs.remove(file)))
+  // } catch (e) {
+  // reporter.error(`Failed to remove .cache files.`, e)
+  // }
+  // Tell reducers to delete their data (the store will already have
+  // been loaded from the file system cache).
+  // store.dispatch({
+  // type: `DELETE_CACHE`,
+  // cacheIsCorrupt,
+  // })
 
-    // make sure all previous mutexes are released
-    await releaseAllMutexes()
+  // make sure all previous mutexes are released
+  // await releaseAllMutexes()
 
-    // in future this should show which plugin's caches are purged
-    // possibly should also have which plugins had caches
-    telemetry.decorateEvent(`BUILD_END`, {
-      pluginCachesPurged: [`*`],
-    })
-    telemetry.decorateEvent(`DEVELOP_STOP`, {
-      pluginCachesPurged: [`*`],
-    })
-  }
+  // // in future this should show which plugin's caches are purged
+  // // possibly should also have which plugins had caches
+  // telemetry.decorateEvent(`BUILD_END`, {
+  // pluginCachesPurged: [`*`],
+  // })
+  // telemetry.decorateEvent(`DEVELOP_STOP`, {
+  // pluginCachesPurged: [`*`],
+  // })
+  // }
 
   // Update the store with the new plugins hash.
   store.dispatch({

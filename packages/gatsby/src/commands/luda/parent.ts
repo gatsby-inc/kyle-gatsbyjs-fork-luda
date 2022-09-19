@@ -48,7 +48,7 @@ async function main() {
     // currentParentState = state
     if (state.changed) {
       console.log(
-        new Date().getTime(),
+        process.uptime(),
         `PARENT`,
         state.value,
         state.context,
@@ -67,7 +67,7 @@ async function main() {
     msgToParse => {
       const msg = v8.deserialize(msgToParse)
       if (msg.type !== `SITE_REPLICATION`) {
-        console.log(`event`, msg.type)
+        console.log(process.uptime(), `event`, msg.type)
         parentInstance.send(msg)
       }
     },

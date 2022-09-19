@@ -452,9 +452,7 @@ async function parallelBuild(
     const partitionedPageQueries = partitionArray(queryIds.pageQueryIds)
     queryIds.pageQueryIds = partitionedPageQueries
 
-    console.log({
-      partitionedPageQueries: partitionedPageQueries.map(q => q.path),
-    })
+    console.log(`partitionedPageQueries`, partitionedPageQueries.length)
 
     await runQueriesInWorkersQueue(workerPool, queryIds, {
       parentSpan: buildSpan,
@@ -546,7 +544,7 @@ async function parallelBuild(
     const action = arg.action
 
     // Massage actions
-    if (action.type === `SOURCE_DIRECTORY`) {
+    if (action.type === `UPSTREAM_SOURCE_DIRECTORY`) {
       upstreamRootDirectory = action.directory
     }
 
@@ -559,6 +557,13 @@ async function parallelBuild(
       action.payload.componentPath = newPath
     }
     if (action.type === `QUERY_EXTRACTED`) {
+      const newPath = path.join(
+        program.directory,
+        path.relative(upstreamRootDirectory, action.payload.componentPath)
+      )
+      action.payload.componentPath = newPath
+    }
+    if (action.type === `SET_COMPONENT_FEATURES`) {
       const newPath = path.join(
         program.directory,
         path.relative(upstreamRootDirectory, action.payload.componentPath)

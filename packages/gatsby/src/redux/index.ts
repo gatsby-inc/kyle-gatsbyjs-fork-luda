@@ -23,7 +23,7 @@ export const emitter = mett()
 export const readState = (): IGatsbyState => {
   try {
     const state = readFromCache() as IGatsbyState
-    console.log(`state`, state)
+    console.log(`number of components`, state.components.size)
     if (state.nodes) {
       // re-create nodesByType
       state.nodesByType = new Map()
@@ -130,7 +130,6 @@ export const savePartialStateToDisk = (
   optionalPrefix?: string,
   transformState?: <T extends DeepPartial<IGatsbyState>>(state: T) => T
 ): void => {
-  console.log(`======savePartialStateToDisk=====`, { slices, optionalPrefix })
   const state = store.getState()
   const contents = _.pick(state, slices)
   const savedContents = transformState ? transformState(contents) : contents
@@ -142,7 +141,6 @@ export const loadPartialStateFromDisk = (
   slices: Array<GatsbyStateKeys>,
   optionalPrefix?: string
 ): DeepPartial<IGatsbyState> => {
-  console.log(`loadPartialStateFromDisk`, slices, optionalPrefix)
   try {
     return readFromCache(slices, optionalPrefix) as DeepPartial<IGatsbyState>
   } catch (e) {

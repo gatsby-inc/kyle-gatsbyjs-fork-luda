@@ -13,16 +13,16 @@ export function deleteUntouchedPages(
   const deletedPages: Array<string> = []
 
   // Delete pages that weren't updated when running createPages.
-  currentPages.forEach(page => {
-    if (
-      (shouldRunCreatePagesStatefully ||
-        !page.isCreatedByStatefulCreatePages) &&
-      page.updatedAt < timeBeforeApisRan
-    ) {
-      store.dispatch(deletePage(page))
-      deletedPages.push(page.path, `/page-data${page.path}`)
-    }
-  })
+  // currentPages.forEach(page => {
+  // if (
+  // (shouldRunCreatePagesStatefully ||
+  // !page.isCreatedByStatefulCreatePages) &&
+  // page.updatedAt < timeBeforeApisRan
+  // ) {
+  // store.dispatch(deletePage(page))
+  // deletedPages.push(page.path, `/page-data${page.path}`)
+  // }
+  // })
   return deletedPages
 }
 

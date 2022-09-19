@@ -45,7 +45,8 @@ export function calcDirtyQueryIds(state: IGatsbyState): Array<string> {
     if (deletedQueries.has(queryId)) {
       continue
     }
-    if (query.dirty > 0 && !queriesWithBabelErrors.has(queryId)) {
+    if (true) {
+      // query.dirty > 0 && !queriesWithBabelErrors.has(queryId)) {
       dirtyQueryIds.push(queryId)
     }
   }
@@ -148,7 +149,6 @@ async function processQueries<QueryIDType>({
       graphqlTracing,
     })
 
-    console.log(`# page queries`, queryIds.length)
     queryIds.forEach((queryId: QueryIDType) => {
       fastQueue.push(queryId, (err, res) => {
         if (err) {

@@ -6,6 +6,7 @@ import {
   IDeletePageAction,
   IMaterializePageMode,
 } from "../types"
+import path from "path"
 
 export const pagesReducer = (
   state: IGatsbyState["pages"] = new Map<string, IGatsbyPage>(),
@@ -19,6 +20,19 @@ export const pagesReducer = (
     case `DELETE_CACHE`:
       return new Map()
 
+    case `UPSTREAM_SOURCE_DIRECTORY`: {
+      // Rewrite componentPath
+      state.forEach((value, key) => {
+        const newPath = path.join(
+          process.cwd(),
+          path.relative(action.directory, value.componentPath)
+        )
+        value.componentPath = newPath
+        value.component = newPath
+        state.set(key, value)
+      })
+      return state
+    }
     case `CREATE_PAGE`: {
       // throws an error if the page is not created by a plugin
       if (!action.plugin?.name) {
