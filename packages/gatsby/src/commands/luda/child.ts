@@ -21,6 +21,7 @@ const requestListener = function (req, res) {
 const server = http.createServer(requestListener)
 server.listen(8080)
 
+let eventsSynced = 0
 async function main() {
   const client = createClient({
     url: `redis://default:5Jfpsh9R7aOp3hkU49mbHKODfHxvhLsN@redis-19578.c21350.us-west-2-1.ec2.cloud.rlrcp.com:19578`,
@@ -72,11 +73,20 @@ async function main() {
   // the syncing invocation then processes those until it gets
   // to the end and then signals it's done.
 
+  function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, `\\$&`) // $& means the whole matched string
+  }
+  function replaceAll(str, match, replacement) {
+    return str.replace(new RegExp(escapeRegExp(match), `g`), () => replacement)
+  }
+  setInterval(() => console.log({ eventsSynced }), 1000)
+
   let upstreamRootDirectory: string
   await subscriber.subscribe(
     `event`,
     msgToParse => {
       const msg = v8.deserialize(msgToParse)
+      eventsSynced += 1
       if (msg.action?.type === `SOURCE_DIRECTORY`) {
         upstreamRootDirectory = msg.action.directory
       }
@@ -95,17 +105,6 @@ async function main() {
             // Or the redux store.
             .filter(line => !line.includes(`redux`))
 
-          console.log(`filesToBeReplaced`, { files })
-          // Taken from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
-          function escapeRegExp(string) {
-            return string.replace(/[.*+?^${}()|[\]\\]/g, `\\$&`) // $& means the whole matched string
-          }
-          function replaceAll(str, match, replacement) {
-            return str.replace(
-              new RegExp(escapeRegExp(match), `g`),
-              () => replacement
-            )
-          }
           files.forEach(file => {
             console.log(
               `replacing in ${file}, ${upstreamRootDirectory} => ${program.directory}`
@@ -118,15 +117,18 @@ async function main() {
             )
             fs.writeFileSync(file, fileStr)
           })
+
+          console.log(`filesToBeReplaced`, { files })
+          // Taken from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions
         })
         return
       }
 
       if (msg.type !== `SITE_REPLICATION`) {
-        console.log(`event`, msg.type)
+        // console.log(`event`, msg.type)
         child1Instance.send(msg)
       } else {
-        console.log(`event`, msg.action.type)
+        // console.log(`event`, msg.action.type)
         gatsbyController.replicationLogQueue.push(msg)
       }
     },

@@ -351,6 +351,7 @@ async function serialBuild(
   if (!externalTelemetryAttributes) {
     await stopTracer()
   }
+  console.log(`BOOTSTRAPPING_DONE`, process.uptime())
   externalEmitter.emit(`event`, {
     type: `BOOTSTRAPPING_DONE`,
     timestamp: new Date().toJSON(),
