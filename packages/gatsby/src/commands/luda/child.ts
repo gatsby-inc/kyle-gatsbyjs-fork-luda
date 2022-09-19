@@ -3,8 +3,6 @@ import crypto from "crypto"
 const v8 = require(`v8`)
 import fs from "fs-extra"
 import path from "path"
-import childMachine from "./child-machine"
-import parallelBuild from "../parallel-build"
 import tar from "tar"
 import { execSync } from "child_process"
 const stream = require(`stream`)
@@ -88,6 +86,9 @@ async function main() {
     prefixPaths: false,
   }
 
+  const parallelBuild = require(`../parallel-build`).default
+  const childMachine = require(`./child-machine`).default
+  console.log({ parallelBuild })
   const gatsbyController = await parallelBuild(program)
 
   const child1Id = crypto.randomUUID()

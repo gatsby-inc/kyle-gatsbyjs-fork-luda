@@ -29,7 +29,10 @@ export const componentsReducer = (
         state.set(newPath, value)
       })
 
+      console.log({ oldKeys, newKeys: [...state.keys()], action })
+
       oldKeys.forEach(key => state.delete(key))
+      console.log({ newKeys: [...state.keys()] })
 
       return state
     }
