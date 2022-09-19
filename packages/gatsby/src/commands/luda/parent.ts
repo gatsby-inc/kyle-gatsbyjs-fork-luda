@@ -19,7 +19,7 @@ const program = {
 
 async function main() {
   const client = createClient({
-    url: `redis://137.66.4.103:10000`,
+    url: `redis-19578.c21350.us-west-2-1.ec2.cloud.rlrcp.com:19578`,
   })
 
   client.on(`error`, err => console.log(`Redis Client Error`, err))
@@ -46,13 +46,15 @@ async function main() {
     })
   ).onTransition(state => {
     // currentParentState = state
-    console.log(
-      new Date().getTime(),
-      `PARENT`,
-      state.value,
-      state.context,
-      state.event
-    )
+    if (state.changed) {
+      console.log(
+        new Date().getTime(),
+        `PARENT`,
+        state.value,
+        state.context,
+        state.event.type
+      )
+    }
 
     if (state.value === `done`) {
       console.log(`DONE!!!`, process.uptime())
@@ -64,8 +66,10 @@ async function main() {
     `event`,
     msgToParse => {
       const msg = v8.deserialize(msgToParse)
-      console.log(`event`, msg.type)
-      parentInstance.send(msg)
+      if (msg.type !== `SITE_REPLICATION`) {
+        console.log(`event`, msg.type)
+        parentInstance.send(msg)
+      }
     },
     true
   )

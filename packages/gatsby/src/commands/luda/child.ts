@@ -10,9 +10,20 @@ import { execSync } from "child_process"
 
 import { createClient } from "redis"
 
+// Add simple HTTP server for the fly.io health check
+const http = require(`http`)
+
+const requestListener = function (req, res) {
+  res.writeHead(200)
+  res.end(`Hello, World!`)
+}
+
+const server = http.createServer(requestListener)
+server.listen(8080)
+
 async function main() {
   const client = createClient({
-    url: `redis://137.66.4.103:10000`,
+    url: `redis-19578.c21350.us-west-2-1.ec2.cloud.rlrcp.com:19578`,
   })
 
   client.on(`error`, err => console.log(`Redis Client Error`, err))
@@ -41,7 +52,6 @@ async function main() {
     prefixPaths: false,
   }
 
-  console.log({ program })
   const gatsbyController = await parallelBuild(program)
 
   const child1Id = crypto.randomUUID()
@@ -53,7 +63,9 @@ async function main() {
     })
   ).onTransition(state => {
     // currentChild1State = state
-    console.log(`MYSTATE`, state.value, state.context)
+    if (state.changed) {
+      console.log(`MYSTATE`, state.value, state.context)
+    }
   })
 
   // Create replication queue where actions are pushed
@@ -110,10 +122,11 @@ async function main() {
         return
       }
 
-      console.log(`event`, msg)
       if (msg.type !== `SITE_REPLICATION`) {
+        console.log(`event`, msg.type)
         child1Instance.send(msg)
       } else {
+        console.log(`event`, msg.action.type)
         gatsbyController.replicationLogQueue.push(msg)
       }
     },
