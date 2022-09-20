@@ -66,9 +66,13 @@ export function readFromCache(
     )
   }
 
-  const obj: ICachedReduxState = v8.deserialize(
-    readFileSync(reduxSharedFile(cacheFolder))
-  )
+  let obj = {}
+  if (process.env.IS_WORKER) {
+    console.log(`reading rest state`)
+    console.time(`read rest state`)
+    obj = v8.deserialize(readFileSync(reduxSharedFile(cacheFolder)))
+    console.timeEnd(`read rest state`)
+  }
 
   // Note: at 1M pages, this will be 1M/chunkSize chunks (ie. 1m/10k=100)
   const nodesChunks = globSync(
@@ -87,9 +91,13 @@ export function readFromCache(
   obj.nodes = new Map(nodes)
 
   // Note: at 1M pages, this will be 1M/chunkSize chunks (ie. 1m/10k=100)
+  console.log(`reading pages`)
+  console.time(`reading pages`)
   const pagesChunks = globSync(
     reduxChunkedPagesFilePrefix(cacheFolder) + `*`
   ).map(file => v8.deserialize(readFileSync(file)))
+  console.timeEnd(`reading pages`)
+  // const pagesChunks = []
 
   const pages: Array<[string, IGatsbyPage]> = [].concat(...pagesChunks)
 

@@ -429,9 +429,9 @@ async function parallelBuild(
     // ]
 
     // Only run queries with mode SSG
-    queryIds.pageQueryIds = queryIds.pageQueryIds.filter(
-      query => getPageMode(query) === `SSG` && query.path !== `/404/`
-    )
+    // queryIds.pageQueryIds = queryIds.pageQueryIds.filter(
+    // query => getPageMode(query) === `SSG` && query.path !== `/404/`
+    // )
 
     function partitionArray(srcArray) {
       const destArray = []
@@ -449,6 +449,7 @@ async function parallelBuild(
       return destArray
     }
 
+    console.log(`# of page queries`, queryIds.pageQueryIds.length)
     const partitionedPageQueries = partitionArray(queryIds.pageQueryIds)
     queryIds.pageQueryIds = partitionedPageQueries
 

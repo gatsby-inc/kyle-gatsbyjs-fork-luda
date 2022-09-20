@@ -497,6 +497,8 @@ export async function buildHTMLPagesAndDeleteStaleArtifacts({
   let { toRegenerate, toDelete, toCleanupFromTrackedState } =
     buildUtils.calcDirtyHtmlFiles(store.getState())
 
+  console.log({ toDelete })
+
   store.dispatch({
     type: `HTML_TRACKED_PAGES_CLEANUP`,
     payload: toCleanupFromTrackedState,
@@ -549,16 +551,16 @@ export async function buildHTMLPagesAndDeleteStaleArtifacts({
     reporter.info(`There are no new or changed html files to build.`)
   }
 
-  if (toDelete.length > 0) {
-    const publicDir = path.join(program.directory, `public`)
-    const deletePageDataActivityTimer = reporter.activityTimer(
-      `Delete previous page data`
-    )
-    deletePageDataActivityTimer.start()
-    await buildUtils.removePageFiles(publicDir, toDelete)
+  // if (toDelete.length > 0) {
+  // const publicDir = path.join(program.directory, `public`)
+  // const deletePageDataActivityTimer = reporter.activityTimer(
+  // `Delete previous page data`
+  // )
+  // deletePageDataActivityTimer.start()
+  // await buildUtils.removePageFiles(publicDir, toDelete)
 
-    deletePageDataActivityTimer.end()
-  }
+  // deletePageDataActivityTimer.end()
+  // }
 
   return { toRegenerate, toDelete }
 }

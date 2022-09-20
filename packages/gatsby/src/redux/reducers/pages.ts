@@ -8,6 +8,25 @@ import {
 } from "../types"
 import path from "path"
 
+const rewrites = new Map()
+function rewritePath(upstreamDirectory, componentPath) {
+  if (rewrites.has(componentPath)) {
+    return rewrites.get(componentPath)
+  } else {
+    if (componentPath.includes(upstreamDirectory)) {
+      const newPath = path.join(
+        process.cwd(),
+        path.relative(upstreamDirectory, componentPath)
+      )
+      rewrites.set(componentPath, newPath)
+      return newPath
+    } else {
+      rewrites.set(componentPath, componentPath)
+      return componentPath
+    }
+  }
+}
+
 export const pagesReducer = (
   state: IGatsbyState["pages"] = new Map<string, IGatsbyPage>(),
   action:
@@ -23,10 +42,7 @@ export const pagesReducer = (
     case `UPSTREAM_SOURCE_DIRECTORY`: {
       // Rewrite componentPath
       state.forEach((value, key) => {
-        const newPath = path.join(
-          process.cwd(),
-          path.relative(action.directory, value.componentPath)
-        )
+        const newPath = rewritePath(action.directory, value.componentPath)
         value.componentPath = newPath
         value.component = newPath
         state.set(key, value)

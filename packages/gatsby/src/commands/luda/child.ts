@@ -62,25 +62,15 @@ async function main() {
       path: `.cache/redux/redux.page.state_0.zip`,
     },
     {
-      url: `https://storage.googleapis.com/kyle-public/redux/redux.page.state_1.zip?ignoreCache=${cacheBuster}`,
-      path: `.cache/redux/redux.page.state_1.zip`,
-    },
-    {
-      url: `https://storage.googleapis.com/kyle-public/redux/redux.page.state_2.zip?ignoreCache=${cacheBuster}`,
-      path: `.cache/redux/redux.page.state_2.zip`,
-    },
-    {
-      url: `https://storage.googleapis.com/kyle-public/redux/redux.page.state_3.zip?ignoreCache=${cacheBuster}`,
-      path: `.cache/redux/redux.page.state_3.zip`,
-    },
-    {
       url: `https://storage.googleapis.com/kyle-public/data.mdb.zip`,
       path: `.cache/data/datastore/data.mdb.zip`,
     },
   ]
 
+  // TEMP while testing locally.
   await Promise.all(
     urls.map(async urlInfo => {
+      console.log(`downloading ${urlInfo.url}`)
       const fullPath = path.join(srcLocation, urlInfo.path)
       await fs.ensureDir(path.parse(fullPath).dir)
       await pipeline(
@@ -125,7 +115,7 @@ async function main() {
   ).onTransition(state => {
     // currentChild1State = state
     if (state.changed) {
-      console.log(`MYSTATE`, state.value)
+      console.log(process.uptime(), `worker ${child1Id}`, state.value)
     }
   })
 
@@ -185,7 +175,7 @@ async function main() {
       }
 
       if (msg.type !== `SITE_REPLICATION`) {
-        console.log(`event`, msg.type)
+        console.log(process.uptime(), `event`, msg.type)
         child1Instance.send(msg)
       } else {
         if (msg.action.type !== `CREATE_NODE`) {

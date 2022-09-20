@@ -30,6 +30,9 @@ const concurrency =
  */
 export function calcDirtyQueryIds(state: IGatsbyState): Array<string> {
   const { trackedQueries, trackedComponents, deletedQueries } = state.queries
+  console.log(`calcDirtyQueryIds`)
+  console.log(`trackedQueries size`, trackedQueries.size)
+  console.log({ trackedComponents, deletedQueries })
 
   const queriesWithBabelErrors = new Set()
   for (const component of trackedComponents.values()) {

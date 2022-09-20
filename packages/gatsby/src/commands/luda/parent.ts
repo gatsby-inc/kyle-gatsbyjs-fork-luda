@@ -1,6 +1,5 @@
 import { interpret } from "xstate"
 import parentMachine from "./parent-machine"
-import serialBuild from "../serial-build"
 import path from "path"
 const v8 = require(`v8`)
 
@@ -25,6 +24,7 @@ async function main() {
   client.on(`error`, err => console.log(`Redis Client Error`, err))
 
   await client.connect()
+  console.log({ client })
 
   const redisEmitter = {
     emit: (channel, msg) => {
@@ -37,6 +37,7 @@ async function main() {
   const subscriber = client.duplicate()
   await subscriber.connect()
 
+  let currentParentState
   const parentInstance = interpret(
     parentMachine.withContext({
       workersCount: 0,
@@ -47,7 +48,7 @@ async function main() {
       bus: redisEmitter,
     })
   ).onTransition(state => {
-    // currentParentState = state
+    currentParentState = state
     if (state.changed) {
       console.log(
         process.uptime(),
@@ -69,7 +70,12 @@ async function main() {
     msgToParse => {
       const msg = v8.deserialize(msgToParse)
       if (msg.type !== `SITE_REPLICATION`) {
-        console.log(process.uptime(), `event`, msg.type)
+        console.log(
+          process.uptime(),
+          `event`,
+          msg.type,
+          currentParentState.value
+        )
         parentInstance.send(msg)
       }
     },
@@ -78,6 +84,7 @@ async function main() {
 
   parentInstance.start()
 
+  const serialBuild = require(`../serial-build`).default
   serialBuild(program, null, redisEmitter)
 
   // Fake Gatsby
