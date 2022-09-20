@@ -455,54 +455,54 @@ actions.createPage = (
   }
 
   // just so it's easier to c&p from createPage action creator for now - ideally it's DRYed
-  const { updatedAt, ...node } = internalPage
-  node.children = []
-  node.internal = {
-    type: `SitePage`,
-    contentDigest: createContentDigest(node),
-  }
-  node.id = `SitePage ${internalPage.path}`
-  const oldNode = getNode(node.id)
+  // const { updatedAt, ...node } = internalPage
+  // node.children = []
+  // node.internal = {
+    // type: `SitePage`,
+    // contentDigest: createContentDigest(node),
+  // }
+  // node.id = `SitePage ${internalPage.path}`
+  // const oldNode = getNode(node.id)
 
-  let deleteActions
-  let updateNodeAction
-  if (oldNode && !hasNodeChanged(node.id, node.internal.contentDigest)) {
-    updateNodeAction = {
-      ...actionOptions,
-      plugin,
-      type: `TOUCH_NODE`,
-      payload: node.id,
-    }
-  } else {
-    // Remove any previously created descendant nodes as they're all due
-    // to be recreated.
-    if (oldNode) {
-      const createDeleteAction = node => {
-        return {
-          ...actionOptions,
-          type: `DELETE_NODE`,
-          plugin,
-          payload: node,
-        }
-      }
-      deleteActions = findChildren(oldNode.children)
-        .map(getNode)
-        .map(createDeleteAction)
-    }
+  // let deleteActions
+  // let updateNodeAction
+  // if (oldNode && !hasNodeChanged(node.id, node.internal.contentDigest)) {
+    // updateNodeAction = {
+      // ...actionOptions,
+      // plugin,
+      // type: `TOUCH_NODE`,
+      // payload: node.id,
+    // }
+  // } else {
+    // // Remove any previously created descendant nodes as they're all due
+    // // to be recreated.
+    // if (oldNode) {
+      // const createDeleteAction = node => {
+        // return {
+          // ...actionOptions,
+          // type: `DELETE_NODE`,
+          // plugin,
+          // payload: node,
+        // }
+      // }
+      // deleteActions = findChildren(oldNode.children)
+        // .map(getNode)
+        // .map(createDeleteAction)
+    // }
 
-    node.internal.counter = getNextNodeCounter()
+    // node.internal.counter = getNextNodeCounter()
 
-    updateNodeAction = {
-      ...actionOptions,
-      type: `CREATE_NODE`,
-      plugin,
-      oldNode,
-      payload: node,
-    }
-  }
+    // updateNodeAction = {
+      // ...actionOptions,
+      // type: `CREATE_NODE`,
+      // plugin,
+      // oldNode,
+      // payload: node,
+    // }
+  // }
 
   // Sanitize page object so we don't attempt to serialize user-provided objects that are not serializable later
-  const sanitizedPayload = sanitizeNode(internalPage)
+  // const sanitizedPayload = sanitizeNode(internalPage)
 
   const actions = [
     {
@@ -511,15 +511,15 @@ actions.createPage = (
       contextModified,
       componentModified,
       plugin,
-      payload: sanitizedPayload,
+      payload: internalPage,
     },
   ]
 
-  if (deleteActions && deleteActions.length) {
-    actions.push(...deleteActions)
-  }
+  // if (deleteActions && deleteActions.length) {
+    // actions.push(...deleteActions)
+  // }
 
-  actions.push(updateNodeAction)
+  // actions.push(updateNodeAction)
 
   return actions
 }
@@ -725,35 +725,35 @@ const createNode = (
 
   trackCli(`CREATE_NODE`, trackParams, { debounce: true })
 
-  const result = nodeSchema.validate(node)
-  if (result.error) {
-    if (!hasErroredBecauseOfNodeValidation.has(result.error.message)) {
-      const errorObj = {
-        id: `11467`,
-        context: {
-          validationErrorMessage: result.error.message,
-          node,
-        },
-      }
+  // const result = nodeSchema.validate(node)
+  // if (result.error) {
+    // if (!hasErroredBecauseOfNodeValidation.has(result.error.message)) {
+      // const errorObj = {
+        // id: `11467`,
+        // context: {
+          // validationErrorMessage: result.error.message,
+          // node,
+        // },
+      // }
 
-      const possiblyCodeFrame = getNonGatsbyCodeFrame()
-      if (possiblyCodeFrame) {
-        errorObj.context.codeFrame = possiblyCodeFrame.codeFrame
-        errorObj.filePath = possiblyCodeFrame.fileName
-        errorObj.location = {
-          start: {
-            line: possiblyCodeFrame.line,
-            column: possiblyCodeFrame.column,
-          },
-        }
-      }
+      // const possiblyCodeFrame = getNonGatsbyCodeFrame()
+      // if (possiblyCodeFrame) {
+        // errorObj.context.codeFrame = possiblyCodeFrame.codeFrame
+        // errorObj.filePath = possiblyCodeFrame.fileName
+        // errorObj.location = {
+          // start: {
+            // line: possiblyCodeFrame.line,
+            // column: possiblyCodeFrame.column,
+          // },
+        // }
+      // }
 
-      report.error(errorObj)
-      hasErroredBecauseOfNodeValidation.add(result.error.message)
-    }
+      // report.error(errorObj)
+      // hasErroredBecauseOfNodeValidation.add(result.error.message)
+    // }
 
-    return { type: `VALIDATION_ERROR`, error: true }
-  }
+    // return { type: `VALIDATION_ERROR`, error: true }
+  // }
 
   // Ensure node isn't directly setting fields.
   if (node.fields) {
@@ -776,7 +776,7 @@ const createNode = (
     )
   }
 
-  node = sanitizeNode(node)
+  // node = sanitizeNode(node)
 
   const oldNode = getNode(node.id)
 

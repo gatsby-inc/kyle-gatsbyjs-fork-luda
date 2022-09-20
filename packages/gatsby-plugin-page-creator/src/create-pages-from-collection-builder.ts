@@ -73,23 +73,23 @@ ${errors.map(error => error.message).join(`\n`)}`.trim(),
       filePath: absolutePath,
     })
 
-    watchCollectionBuilder(
-      absolutePath,
-      queryString,
-      [],
-      actions,
-      reporter,
-      () =>
-        createPagesFromCollectionBuilder(
-          filePath,
-          absolutePath,
-          actions,
-          graphql,
-          reporter,
-          trailingSlash,
-          slugifyOptions
-        )
-    )
+    // watchCollectionBuilder(
+      // absolutePath,
+      // queryString,
+      // [],
+      // actions,
+      // reporter,
+      // () =>
+        // createPagesFromCollectionBuilder(
+          // filePath,
+          // absolutePath,
+          // actions,
+          // graphql,
+          // reporter,
+          // trailingSlash,
+          // slugifyOptions
+        // )
+    // )
 
     return
   }

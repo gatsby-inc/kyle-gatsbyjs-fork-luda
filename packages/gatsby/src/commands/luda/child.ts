@@ -62,6 +62,18 @@ async function main() {
       path: `.cache/redux/redux.page.state_0.zip`,
     },
     {
+      url: `https://storage.googleapis.com/kyle-public/redux/redux.page.state_0.zip?ignoreCache=${cacheBuster}`,
+      path: `.cache/redux/redux.page.state_1.zip`,
+    },
+    {
+      url: `https://storage.googleapis.com/kyle-public/redux/redux.page.state_0.zip?ignoreCache=${cacheBuster}`,
+      path: `.cache/redux/redux.page.state_2.zip`,
+    },
+    {
+      url: `https://storage.googleapis.com/kyle-public/redux/redux.page.state_0.zip?ignoreCache=${cacheBuster}`,
+      path: `.cache/redux/redux.page.state_3.zip`,
+    },
+    {
       url: `https://storage.googleapis.com/kyle-public/data.mdb.zip`,
       path: `.cache/data/datastore/data.mdb.zip`,
     },
