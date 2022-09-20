@@ -480,8 +480,15 @@ const addNodes = (
   nodes: Iterable<Node>
 ): ITypeMetadata => {
   let state = metadata
+  const limit = 10
+  let count = 0
   for (const node of nodes) {
-    state = addNode(state, node)
+    count += 1
+    if (count < limit) {
+      state = addNode(state, node)
+    } else {
+      break
+    }
   }
   return state
 }

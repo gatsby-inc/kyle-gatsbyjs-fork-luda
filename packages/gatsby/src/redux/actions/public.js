@@ -437,7 +437,7 @@ actions.createPage = (
   // const oldPage: Page = store.getState().pages.get(internalPage.path)
   const contextModified = false
   // !!oldPage && !_.isEqual(oldPage.context, internalPage.context)
-  // const componentModified =
+  const componentModified = true
   // !!oldPage && !_.isEqual(oldPage.component, internalPage.component)
 
   const alternateSlashPath = page.path.endsWith(`/`)

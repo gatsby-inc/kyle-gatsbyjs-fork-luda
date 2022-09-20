@@ -1164,14 +1164,14 @@ const addInferredChildOfExtension = ({ schemaComposer, typeComposer }) => {
   // This is expensive.
   // TODO: We should probably collect this info during inference metadata pass
   const childNodeTypes = new Set()
-  for (const node of getDataStore().iterateNodesByType(parentTypeName)) {
-    const children = (node.children || []).map(getNode)
-    for (const childNode of children) {
-      if (childNode?.internal?.type) {
-        childNodeTypes.add(childNode.internal.type)
-      }
-    }
-  }
+  // for (const node of getDataStore().iterateNodesByType(parentTypeName)) {
+  // const children = (node.children || []).map(getNode)
+  // for (const childNode of children) {
+  // if (childNode?.internal?.type) {
+  // childNodeTypes.add(childNode.internal.type)
+  // }
+  // }
+  // }
 
   childNodeTypes.forEach(typeName => {
     const childTypeComposer = schemaComposer.getAnyTC(typeName)
