@@ -62,15 +62,15 @@ async function main() {
       path: `.cache/redux/redux.page.state_0.zip`,
     },
     {
-      url: `https://storage.googleapis.com/kyle-public/redux/redux.page.state_0.zip?ignoreCache=${cacheBuster}`,
+      url: `https://storage.googleapis.com/kyle-public/redux/redux.page.state_1.zip?ignoreCache=${cacheBuster}`,
       path: `.cache/redux/redux.page.state_1.zip`,
     },
     {
-      url: `https://storage.googleapis.com/kyle-public/redux/redux.page.state_0.zip?ignoreCache=${cacheBuster}`,
+      url: `https://storage.googleapis.com/kyle-public/redux/redux.page.state_2.zip?ignoreCache=${cacheBuster}`,
       path: `.cache/redux/redux.page.state_2.zip`,
     },
     {
-      url: `https://storage.googleapis.com/kyle-public/redux/redux.page.state_0.zip?ignoreCache=${cacheBuster}`,
+      url: `https://storage.googleapis.com/kyle-public/redux/redux.page.state_3.zip?ignoreCache=${cacheBuster}`,
       path: `.cache/redux/redux.page.state_3.zip`,
     },
     {
