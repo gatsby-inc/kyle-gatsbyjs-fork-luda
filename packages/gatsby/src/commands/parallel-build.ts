@@ -505,7 +505,7 @@ async function parallelBuild(
     }
 
     console.log(5.5)
-    await flushPendingPageDataWrites(buildSpan)
+    await flushPendingPageDataWrites(buildSpan, partitionedPageQueries)
     console.log(6)
     markWebpackStatusAsDone()
 
@@ -520,6 +520,7 @@ async function parallelBuild(
       await buildHTMLPagesAndDeleteStaleArtifacts({
         program,
         partitionArray,
+        partitionedPageQueries,
         workerPool,
         parentSpan: buildSpan,
       })

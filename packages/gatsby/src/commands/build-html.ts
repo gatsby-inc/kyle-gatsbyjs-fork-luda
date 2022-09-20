@@ -481,6 +481,7 @@ export const buildHTML = async ({
 export async function buildHTMLPagesAndDeleteStaleArtifacts({
   workerPool,
   partitionArray,
+  partitionedPageQueries,
   parentSpan,
   program,
 }: {
@@ -504,8 +505,12 @@ export async function buildHTMLPagesAndDeleteStaleArtifacts({
     payload: toCleanupFromTrackedState,
   })
 
-  toRegenerate = toRegenerate.filter(path => path !== `/404/`)
-  toRegenerate = partitionArray(toRegenerate)
+  const pathSet = new Set()
+  partitionedPageQueries.forEach(page => pathSet.add(page.path))
+  toRegenerate = toRegenerate.filter(
+    path => path !== `/404/` && pathSet.has(path)
+  )
+  // toRegenerate = partitionArray(toRegenerate)
   console.log(`toRegenerate`, toRegenerate.length)
   if (toRegenerate.length > 0) {
     const buildHTMLActivityProgress = reporter.createProgress(
